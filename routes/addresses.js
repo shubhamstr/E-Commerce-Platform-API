@@ -241,7 +241,7 @@ router.post("/delete/:id", async function (req, res, next) {
         404
       )
     }
-    const [updatedCount] = await Addresses.destroy({
+    const resp = await Addresses.destroy({
       where: { id },
     })
     if (updatedCount) {
@@ -250,7 +250,7 @@ router.post("/delete/:id", async function (req, res, next) {
         {
           success: true,
           message: "Address deleted successfully.",
-          data: updatedCount,
+          data: resp,
         },
         200
       )
