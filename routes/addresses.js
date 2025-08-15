@@ -346,4 +346,65 @@ router.get("/get/user/:id", async function (req, res, next) {
   }
 })
 
+/* POST address make default. */
+router.post("/update/default/:id/:userId", async function (req, res, next) {
+  try {
+    const { id, userId } = req.params
+
+    const exists = await Addresses.findOne({ where: { id } })
+    if (!exists) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Address not exists.",
+        },
+        404
+      )
+    }
+    await Addresses.update(
+      { isDefault: false }, // fields to update
+      {
+        where: { userId }, // condition
+      }
+    )
+    const [updatedCount] = await Addresses.update(
+      { isDefault: true }, // fields to update
+      {
+        where: { id }, // condition
+      }
+    )
+    if (updatedCount) {
+      return sendResponse(
+        res,
+        {
+          success: true,
+          message: "Address made default successfully.",
+          data: updatedCount,
+        },
+        200
+      )
+    }
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Error while updating",
+      },
+      200
+    )
+  } catch (error) {
+    console.error(error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error,
+      },
+      500
+    )
+  }
+})
+
 module.exports = router
