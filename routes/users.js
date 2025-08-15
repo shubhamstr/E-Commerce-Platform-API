@@ -2,8 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 var express = require("express")
 var router = express.Router()
-const Users = require("../models/Users")
-const Addresses = require("../models/Addresses")
+const { Users, Addresses } = require("../models/index")
 const sendResponse = require("../utils/response")
 const bcrypt = require("bcryptjs")
 const { generateToken } = require("../utils/jwt")

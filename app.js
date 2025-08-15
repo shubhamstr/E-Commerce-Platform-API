@@ -11,6 +11,7 @@ const NODE_ENV = process.env.NODE_ENV || "development"
 
 var indexRouter = require("./routes/index")
 var usersRouter = require("./routes/users")
+var addressesRouter = require("./routes/addresses")
 
 var app = express()
 
@@ -34,5 +35,6 @@ if (NODE_ENV === "development") {
 
 app.use("/", indexRouter)
 app.use("/user", usersRouter)
+app.use("/address", addressesRouter)
 
 module.exports = app
