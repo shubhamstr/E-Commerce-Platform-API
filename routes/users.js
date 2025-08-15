@@ -300,7 +300,7 @@ router.post("/update-password/:id", async function (req, res, next) {
     // Compare password
     const isMatch = await bcrypt.compare(
       req.body.currentPassword,
-      userResp.password
+      exists.password
     )
     if (!isMatch) {
       return sendResponse(
