@@ -244,7 +244,7 @@ router.post("/delete/:id", async function (req, res, next) {
     const resp = await Addresses.destroy({
       where: { id },
     })
-    if (updatedCount) {
+    if (resp) {
       return sendResponse(
         res,
         {
