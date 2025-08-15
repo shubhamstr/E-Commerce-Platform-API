@@ -91,6 +91,7 @@ router.post("/login", async function (req, res, next) {
     console.log("User logged in:", token)
 
     return sendResponse(res, {
+      success: true,
       message: `Welcome ${userResp.firstName}!`,
       data: {
         token,
