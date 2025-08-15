@@ -112,10 +112,8 @@ router.post("/login", async function (req, res, next) {
 })
 
 /* GET users listing. */
-router.get("/", async function (req, res, next) {
+router.get("/get", async function (req, res, next) {
   try {
-    console.log("get users")
-    // gets users
     const userResp = await Users.findAll({
       attributes: ["id", "firstName", "lastName", "email", "mobileNumber"],
       include: [
@@ -136,7 +134,6 @@ router.get("/", async function (req, res, next) {
       ],
     })
     if (userResp.length) {
-      console.log(userResp)
       return sendResponse(
         res,
         {
@@ -152,6 +149,64 @@ router.get("/", async function (req, res, next) {
       {
         success: false,
         message: "No users found",
+      },
+      404
+    )
+  } catch (error) {
+    console.error(error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error,
+      },
+      500
+    )
+  }
+})
+
+/* GET user single. */
+router.get("/get/:id", async function (req, res, next) {
+  try {
+    const { id } = req.params
+    const userResp = await Users.findOne({
+      where: { id },
+      attributes: ["id", "firstName", "lastName", "email", "mobileNumber"],
+      // logging: console.log,
+      include: [
+        {
+          model: Addresses,
+          as: "addresses",
+          attributes: [
+            "id",
+            "addressLine1",
+            "addressLine2",
+            "city",
+            "state",
+            "pinCode",
+            "addressType",
+            "isDefault",
+          ],
+        },
+      ],
+    })
+    if (userResp) {
+      return sendResponse(
+        res,
+        {
+          success: true,
+          message: "User fetched successfully.",
+          data: userResp,
+        },
+        200
+      )
+    }
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "No user found",
       },
       404
     )
