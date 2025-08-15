@@ -5,6 +5,7 @@ var cookieParser = require("cookie-parser")
 var logger = require("morgan")
 var cors = require("cors")
 const sequelize = require("./utils/db")
+const { authenticateToken } = require("./utils/auth.middleware")
 require("dotenv").config()
 
 const NODE_ENV = process.env.NODE_ENV || "development"
@@ -23,6 +24,8 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
 app.use(express.static(path.join(__dirname, "public")))
+
+app.use(authenticateToken)
 
 console.log("Server is running...")
 
