@@ -225,4 +225,56 @@ router.post("/update/:id", async function (req, res, next) {
   }
 })
 
+/* POST address delete. */
+router.post("/delete/:id", async function (req, res, next) {
+  try {
+    const { id } = req.params
+
+    const exists = await Addresses.findOne({ where: { id } })
+    if (!exists) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Address not exists.",
+        },
+        404
+      )
+    }
+    const [updatedCount] = await Addresses.destroy({
+      where: { id },
+    })
+    if (updatedCount) {
+      return sendResponse(
+        res,
+        {
+          success: true,
+          message: "Address deleted successfully.",
+          data: updatedCount,
+        },
+        200
+      )
+    }
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Error while deleting",
+      },
+      200
+    )
+  } catch (error) {
+    console.error(error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error,
+      },
+      500
+    )
+  }
+})
+
 module.exports = router
