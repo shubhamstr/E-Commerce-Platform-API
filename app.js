@@ -6,6 +6,7 @@ var logger = require("morgan")
 var cors = require("cors")
 const sequelize = require("./utils/db")
 const { authenticateToken } = require("./utils/auth.middleware")
+const { createDefaultAdmin } = require("./utils/seeders")
 require("dotenv").config()
 
 const NODE_ENV = process.env.NODE_ENV || "development"
@@ -26,6 +27,9 @@ app.use(cookieParser())
 app.use(express.static(path.join(__dirname, "public")))
 
 app.use(authenticateToken)
+
+// seeders
+createDefaultAdmin()
 
 console.log("Server is running...")
 
