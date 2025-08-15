@@ -169,4 +169,62 @@ router.get("/", async function (req, res, next) {
   }
 })
 
+/* GET address single. */
+router.get("/get/:id", async function (req, res, next) {
+  try {
+    const { id } = req.params
+    const resp = await Addresses.findOne({
+      where: { id },
+      attributes: [
+        "id",
+        "addressLine1",
+        "addressLine2",
+        "city",
+        "state",
+        "pinCode",
+        "addressType",
+        "isDefault",
+      ],
+      // logging: console.log,
+      include: [
+        {
+          model: Users,
+          as: "user",
+          attributes: ["id", "firstName", "lastName", "email", "mobileNumber"],
+        },
+      ],
+    })
+    if (resp) {
+      return sendResponse(
+        res,
+        {
+          success: true,
+          message: "Address fetched successfully.",
+          data: resp,
+        },
+        200
+      )
+    }
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "No address found",
+      },
+      404
+    )
+  } catch (error) {
+    console.error(error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error,
+      },
+      500
+    )
+  }
+})
+
 module.exports = router
