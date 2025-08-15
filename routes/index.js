@@ -7,12 +7,12 @@ const sendResponse = require("../utils/response")
 /* GET home page. */
 router.get("/", async function (req, res, next) {
   try {
-    await sequelize.authenticate()
+    console.log("Server is running...")
     sendResponse(res, {
-      message:
-        "Server is running... Connection has been established successfully.",
+      message: "erver is running...",
     })
   } catch (error) {
+    console.error("Internal Server Error")
     sendResponse(
       res,
       {

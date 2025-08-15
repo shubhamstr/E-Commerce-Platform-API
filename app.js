@@ -23,6 +23,11 @@ app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
 app.use(express.static(path.join(__dirname, "public")))
 
+console.log("Server is running...")
+
+sequelize.authenticate()
+console.log("Connection has been established successfully.")
+
 if (NODE_ENV === "development") {
   sequelize.sync({ alter: true })
 }
