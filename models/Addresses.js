@@ -12,6 +12,10 @@ const Addresses = sequelize.define("addresses", {
       key: "id",
     },
   },
+  mobileNumber: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   addressLine1: {
     type: DataTypes.STRING,
     allowNull: false,
