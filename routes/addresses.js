@@ -135,9 +135,19 @@ router.post("/add", async function (req, res, next) {
       state,
       pinCode,
       addressType,
-      isDefault,
       mobileNumber,
     } = req.body
+
+    const exists = await Addresses.findOne({
+      where: {
+        userId,
+        isDefault: true,
+      },
+    })
+    const isDefault = true
+    if (exists) {
+      isDefault = false
+    }
 
     const resp = await Addresses.create({
       userId: userId,
