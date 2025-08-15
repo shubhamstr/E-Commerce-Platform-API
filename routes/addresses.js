@@ -144,7 +144,7 @@ router.post("/add", async function (req, res, next) {
         isDefault: true,
       },
     })
-    const isDefault = true
+    let isDefault = true
     if (exists) {
       isDefault = false
     }
