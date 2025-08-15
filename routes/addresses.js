@@ -281,7 +281,7 @@ router.post("/delete/:id", async function (req, res, next) {
 router.get("/get/user/:id", async function (req, res, next) {
   try {
     const { id } = req.params
-    const resp = await Addresses.findOne({
+    const resp = await Addresses.findAll({
       where: { userId: id },
       attributes: [
         "id",
