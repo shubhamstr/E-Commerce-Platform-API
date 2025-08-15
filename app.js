@@ -36,8 +36,8 @@ if (NODE_ENV === "development") {
   sequelize.sync({ alter: true })
 }
 
-app.use("/", indexRouter)
-app.use("/user", usersRouter)
-app.use("/address", addressesRouter)
+app.use("/api/", indexRouter)
+app.use("/api/user", usersRouter)
+app.use("/api/address", addressesRouter)
 
 module.exports = app

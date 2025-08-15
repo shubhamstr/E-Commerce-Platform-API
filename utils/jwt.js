@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 // utils/jwt.js
 const jwt = require("jsonwebtoken")
+require('dotenv').config()
 
 const SECRET = process.env.JWT_SECRET // Move this to environment variable for production
 
