@@ -2,6 +2,7 @@
 // models/User.js
 const { DataTypes } = require("sequelize")
 const sequelize = require("../utils/db")
+const Addresses = require("./Addresses")
 
 const Users = sequelize.define("users", {
   firstName: {
@@ -21,5 +22,10 @@ const Users = sequelize.define("users", {
     allowNull: false,
   },
 })
+
+// Users.hasMany(Addresses, {
+//   foreignKey: 'userId',   // foreign key in Post table
+//   as: 'addresses'             // alias for relation
+// });
 
 module.exports = Users
