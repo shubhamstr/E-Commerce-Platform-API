@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 var express = require("express")
 var router = express.Router()
-const User = require("../models/User")
+const Users = require("../models/Users")
 const sendResponse = require("../utils/response")
 const bcrypt = require("bcryptjs")
 const { generateToken } = require("../utils/jwt")
@@ -14,7 +14,7 @@ router.post("/", async function (req, res, next) {
     const { firstName, lastName, email, password } = req.body
 
     // Check if user exists
-    const existingUser = await User.findOne({ where: { email: email } })
+    const existingUser = await Users.findOne({ where: { email: email } })
     if (existingUser) {
       return sendResponse(
         res,
@@ -29,7 +29,7 @@ router.post("/", async function (req, res, next) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    const userResp = await User.create({
+    const userResp = await Users.create({
       firstName: firstName,
       lastName: lastName,
       email: email,
@@ -62,7 +62,7 @@ router.post("/login", async function (req, res, next) {
     const { email, password } = req.body
 
     // find user
-    const userResp = await User.findOne({ where: { email: email } })
+    const userResp = await Users.findOne({ where: { email: email } })
     if (!userResp) {
       return sendResponse(
         res,
