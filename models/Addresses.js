@@ -7,6 +7,10 @@ const Addresses = sequelize.define("addresses", {
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    references: {
+      model: "users", // Table name, not variable
+      key: "id",
+    },
   },
   addressLine1: {
     type: DataTypes.STRING,
