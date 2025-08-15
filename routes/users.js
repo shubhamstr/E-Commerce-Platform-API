@@ -3,6 +3,7 @@
 var express = require("express")
 var router = express.Router()
 const Users = require("../models/Users")
+const Addresses = require("../models/Addresses")
 const sendResponse = require("../utils/response")
 const bcrypt = require("bcryptjs")
 const { generateToken } = require("../utils/jwt")
@@ -111,9 +112,62 @@ router.post("/login", async function (req, res, next) {
   }
 })
 
-// /* GET users listing. */
-// router.get('/', function(req, res, next) {
-//   res.send('respond with a resource');
-// });
+/* GET users listing. */
+router.get("/", async function (req, res, next) {
+  try {
+    console.log("get users")
+    // gets users
+    const userResp = await Users.findAll({
+      attributes: ["id", "firstName", "lastName", "email", "mobileNumber"],
+      include: [
+        {
+          model: Addresses,
+          as: "addresses",
+          attributes: [
+            "id",
+            "addressLine1",
+            "addressLine2",
+            "city",
+            "state",
+            "pinCode",
+            "addressType",
+            "isDefault",
+          ],
+        },
+      ],
+    })
+    if (userResp.length) {
+      console.log(userResp)
+      return sendResponse(
+        res,
+        {
+          success: true,
+          message: "Users fetched successfully.",
+          data: userResp,
+        },
+        200
+      )
+    }
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "No users found",
+      },
+      404
+    )
+  } catch (error) {
+    console.error(error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error,
+      },
+      500
+    )
+  }
+})
 
 module.exports = router

@@ -13,6 +13,10 @@ const Users = sequelize.define("users", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  mobileNumber: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   email: {
     type: DataTypes.STRING,
     unique: true,
@@ -23,9 +27,9 @@ const Users = sequelize.define("users", {
   },
 })
 
-// Users.hasMany(Addresses, {
-//   foreignKey: 'userId',   // foreign key in Post table
-//   as: 'addresses'             // alias for relation
-// });
+Users.hasMany(Addresses, {
+  foreignKey: 'userId',   // foreign key in Post table
+  as: 'addresses'             // alias for relation
+});
 
 module.exports = Users
