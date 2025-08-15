@@ -8,7 +8,7 @@ const bcrypt = require("bcryptjs")
 const { generateToken } = require("../utils/jwt")
 
 /* POST user registering. */
-router.post("/", async function (req, res, next) {
+router.post("/register", async function (req, res, next) {
   try {
     console.log(req.body)
     const { firstName, lastName, email, password } = req.body
