@@ -4,7 +4,7 @@ const sendResponse = (
   { success = true, message = "", data = null, error = null },
   statusCode = 200
 ) => {
-  res.status(statusCode).json({ success, message, data, error })
+  return res.status(statusCode).json({ success, message, data, error })
 }
 
 module.exports = sendResponse

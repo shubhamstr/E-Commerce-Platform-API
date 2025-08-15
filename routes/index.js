@@ -9,7 +9,7 @@ router.get("/", async function (req, res, next) {
   try {
     console.log("Server is running...")
     sendResponse(res, {
-      message: "erver is running...",
+      message: "Server is running...",
     })
   } catch (error) {
     console.error("Internal Server Error")
