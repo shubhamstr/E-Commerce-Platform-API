@@ -170,4 +170,59 @@ router.post("/add", async function (req, res, next) {
   }
 })
 
+/* POST address update. */
+router.post("/update/:id", async function (req, res, next) {
+  try {
+    const { id } = req.params
+
+    const exists = await Addresses.findOne({ where: { id } })
+    if (!exists) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Address not exists.",
+        },
+        404
+      )
+    }
+    const [updatedCount] = await Addresses.update(
+      { ...req.body }, // fields to update
+      {
+        where: { id }, // condition
+      }
+    )
+    if (updatedCount) {
+      return sendResponse(
+        res,
+        {
+          success: true,
+          message: "Address updated successfully.",
+          data: updatedCount,
+        },
+        200
+      )
+    }
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Error while updating",
+      },
+      200
+    )
+  } catch (error) {
+    console.error(error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error,
+      },
+      500
+    )
+  }
+})
+
 module.exports = router
