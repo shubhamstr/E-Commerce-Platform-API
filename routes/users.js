@@ -366,4 +366,56 @@ router.post("/update-password/:id", async function (req, res, next) {
   }
 })
 
+/* POST user exists. */
+router.post("/exists/:id", async function (req, res, next) {
+  try {
+    const { id } = req.params
+
+    // find user
+    const exists = await Users.findOne({
+      where: { id, loginToken: req.body.token },
+    })
+    if (!exists) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "User not exists.",
+        },
+        404
+      )
+    }
+    if (exists) {
+      return sendResponse(
+        res,
+        {
+          success: true,
+          message: "User exists.",
+          data: exists,
+        },
+        200
+      )
+    }
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Error while checking",
+      },
+      200
+    )
+  } catch (error) {
+    console.error(error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error,
+      },
+      500
+    )
+  }
+})
+
 module.exports = router
