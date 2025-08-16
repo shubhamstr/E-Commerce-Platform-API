@@ -29,5 +29,9 @@ const Users = sequelize.define("users", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  loginToken: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 })
 module.exports = Users

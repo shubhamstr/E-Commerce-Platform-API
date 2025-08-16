@@ -87,8 +87,18 @@ router.post("/login", async function (req, res, next) {
       )
     }
 
-    const token = generateToken({ userId: userResp.id })
+    const token = generateToken({
+      userId: userResp.id,
+      email: userResp.email,
+      firstName: userResp.firstName,
+    })
     console.log("User logged in:", token)
+    await Users.update(
+      { loginToken: token },
+      {
+        where: { id: userResp.id },
+      }
+    )
 
     return sendResponse(res, {
       success: true,
