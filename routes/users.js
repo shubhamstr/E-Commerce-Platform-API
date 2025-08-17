@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 var express = require("express")
 var router = express.Router()
+const { Op } = require("sequelize")
 const { Users, Addresses } = require("../models/index")
 const sendResponse = require("../utils/response")
 const bcrypt = require("bcryptjs")
@@ -125,7 +126,34 @@ router.post("/login", async function (req, res, next) {
 /* GET users listing. */
 router.get("/get", async function (req, res, next) {
   try {
+    let { page = 1, limit = 10, sortField, sortOrder, filters } = req.query
+    page = parseInt(page)
+    limit = parseInt(limit)
+    const offset = (page - 1) * limit
+
+    // Sequelize where clause for filters
+    let where = {}
+    if (filters) {
+      const parsed = JSON.parse(filters)
+      for (const field in parsed) {
+        const value = parsed[field]?.value
+        if (value) {
+          where[field] = {
+            [Op.iLike]: `%${value}%`, // case-insensitive LIKE
+          }
+        }
+      }
+    }
+
+    // Sorting
+    let order = []
+    if (sortField) {
+      order.push([sortField, sortOrder == -1 ? "DESC" : "ASC"])
+    }
+
+    const count = await Users.count({ where, limit, offset, order })
     const userResp = await Users.findAll({
+      where,
       attributes: [
         "id",
         "firstName",
@@ -152,6 +180,9 @@ router.get("/get", async function (req, res, next) {
           ],
         },
       ],
+      limit,
+      offset,
+      order,
     })
     if (userResp.length) {
       return sendResponse(
@@ -159,7 +190,10 @@ router.get("/get", async function (req, res, next) {
         {
           success: true,
           message: "Users fetched successfully.",
-          data: userResp,
+          data: {
+            records: userResp,
+            total: count,
+          },
         },
         200
       )
