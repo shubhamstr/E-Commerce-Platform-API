@@ -126,7 +126,16 @@ router.post("/login", async function (req, res, next) {
 router.get("/get", async function (req, res, next) {
   try {
     const userResp = await Users.findAll({
-      attributes: ["id", "firstName", "lastName", "email", "mobileNumber"],
+      attributes: [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "mobileNumber",
+        "userType",
+        "loginToken",
+        "createdAt",
+      ],
       include: [
         {
           model: Addresses,
