@@ -92,6 +92,7 @@ router.post("/login", async function (req, res, next) {
       userId: userResp.id,
       email: userResp.email,
       firstName: userResp.firstName,
+      lastName: userResp.lastName,
     })
     console.log("User logged in:", token)
     await Users.update(
