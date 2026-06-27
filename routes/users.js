@@ -566,4 +566,58 @@ router.post("/exists/:id", async function (req, res, next) {
   }
 })
 
+/* DELETE user. */
+router.delete("/delete/:id", async function (req, res, next) {
+  try {
+    const { id } = req.params
+
+    const requestingUser = await Users.findByPk(req.user.userId)
+    if (!requestingUser || requestingUser.userType !== "admin") {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized access.",
+        },
+        403
+      )
+    }
+
+    const user = await Users.findByPk(id)
+    if (!user) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "User not found.",
+        },
+        404
+      )
+    }
+
+    await Users.destroy({ where: { id } })
+
+    return sendResponse(
+      res,
+      {
+        success: true,
+        message: "User deleted successfully.",
+      },
+      200
+    )
+  } catch (error) {
+    console.error(error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error.message,
+      },
+      500
+    )
+  }
+})
+
 module.exports = router
+
