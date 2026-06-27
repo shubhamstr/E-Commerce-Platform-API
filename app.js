@@ -17,6 +17,7 @@ var addressesRouter = require("./routes/addresses")
 var categoriesRouter = require("./routes/categories")
 var productsRouter = require("./routes/products")
 var wishlistsRouter = require("./routes/wishlists")
+var contactsRouter = require("./routes/contacts")
 
 var app = express()
 
@@ -52,5 +53,6 @@ app.use("/api/address", addressesRouter)
 app.use("/api/category", categoriesRouter)
 app.use("/api/product", productsRouter)
 app.use("/api/wishlist", wishlistsRouter)
+app.use("/api/contact", contactsRouter)
 
 module.exports = app

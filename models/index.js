@@ -6,6 +6,7 @@ const Wishlists = require("./Wishlists")
 const Carts = require("./Carts")
 const Orders = require("./Orders")
 const OrderItems = require("./OrderItems")
+const Contacts = require("./Contacts")
 
 // Users <-> Addresses
 Users.hasMany(Addresses, {
@@ -116,5 +117,6 @@ module.exports = {
   Carts,
   Orders,
   OrderItems,
+  Contacts,
 }
 
