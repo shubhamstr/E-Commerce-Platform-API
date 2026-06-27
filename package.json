@@ -5,7 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node ./bin/www",
-    "dev": "nodemon ./bin/www",
+    "dev": "npx kill-port 5000 && nodemon ./bin/www",
     "db:migrate": "sequelize db:migrate",
     "db:migrate:undo": "sequelize db:migrate:undo"
   },
