@@ -256,7 +256,16 @@ router.put("/:id/status", async function (req, res, next) {
     const { id } = req.params
     const { status } = req.body
 
-    const allowedStatuses = ["pending", "processing", "shipped", "delivered", "cancelled"]
+    const allowedStatuses = [
+      "pending",
+      "processing",
+      "shipped",
+      "delivered",
+      "cancelled",
+      "cancelled by customer",
+      "cancelled by seller",
+      "cancelled by admin"
+    ]
     if (!allowedStatuses.includes(status)) {
       return sendResponse(
         res,
@@ -280,7 +289,16 @@ router.put("/:id/status", async function (req, res, next) {
       )
     }
 
-    order.status = status
+    let finalStatus = status
+    if (status === "cancelled") {
+      if (userType === "admin") {
+        finalStatus = "cancelled by admin"
+      } else if (userType === "seller") {
+        finalStatus = "cancelled by seller"
+      }
+    }
+
+    order.status = finalStatus
     await order.save()
 
     return sendResponse(res, {
@@ -290,6 +308,57 @@ router.put("/:id/status", async function (req, res, next) {
     })
   } catch (error) {
     console.error("Update order status error:", error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error.message,
+      },
+      500
+    )
+  }
+})
+
+// PUT /:id/cancel - cancel order (Customer/User only, if status is pending or processing)
+router.put("/:id/cancel", async function (req, res, next) {
+  try {
+    const userId = req.user.userId
+    const { id } = req.params
+
+    const order = await Orders.findOne({ where: { id, userId } })
+    if (!order) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Order not found or does not belong to you.",
+        },
+        404
+      )
+    }
+
+    if (order.status !== "pending" && order.status !== "processing") {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: `Cannot cancel order. Current status is '${order.status}'. Only pending or processing orders can be cancelled.`,
+        },
+        400
+      )
+    }
+
+    order.status = "cancelled by customer"
+    await order.save()
+
+    return sendResponse(res, {
+      success: true,
+      message: "Order cancelled successfully.",
+      data: order,
+    })
+  } catch (error) {
+    console.error("Cancel order error:", error)
     return sendResponse(
       res,
       {
