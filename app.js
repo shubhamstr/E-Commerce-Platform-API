@@ -40,7 +40,7 @@ sequelize.authenticate()
   .then(() => {
     console.log("Connection has been established successfully.")
     if (NODE_ENV === "development") {
-      return sequelize.sync({ alter: true })
+      return sequelize.sync()
     }
   })
   .then(() => {
