@@ -4,6 +4,7 @@ const excludedPaths = [
   "/api/user/register",
   "/api/user/login",
   "/api/category/get",
+  "/api/product/get",
 ]
 
 module.exports = {

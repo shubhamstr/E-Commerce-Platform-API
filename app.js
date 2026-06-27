@@ -15,6 +15,7 @@ var indexRouter = require("./routes/index")
 var usersRouter = require("./routes/users")
 var addressesRouter = require("./routes/addresses")
 var categoriesRouter = require("./routes/categories")
+var productsRouter = require("./routes/products")
 
 var app = express()
 
@@ -48,5 +49,6 @@ app.use("/api/", indexRouter)
 app.use("/api/user", usersRouter)
 app.use("/api/address", addressesRouter)
 app.use("/api/category", categoriesRouter)
+app.use("/api/product", productsRouter)
 
 module.exports = app
