@@ -32,13 +32,13 @@ module.exports = {
       },
       productId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: {
           model: 'products',
           key: 'id'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        onDelete: 'SET NULL'
       },
       rating: {
         type: Sequelize.INTEGER,

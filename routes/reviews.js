@@ -11,12 +11,12 @@ router.post("/", async function (req, res, next) {
     const userId = req.user.userId
     const { orderId, productId, rating, comment } = req.body
 
-    if (!orderId || !productId || !rating) {
+    if (!orderId || !rating) {
       return sendResponse(
         res,
         {
           success: false,
-          message: "orderId, productId, and rating are required.",
+          message: "orderId and rating are required.",
         },
         400
       )
@@ -34,32 +34,54 @@ router.post("/", async function (req, res, next) {
       )
     }
 
-    // 1. Verify that order exists, belongs to user, and contains the product
-    const order = await Orders.findOne({
-      where: { id: orderId, userId },
-      include: [
-        {
-          model: OrderItems,
-          as: "items",
-          where: { productId },
-        },
-      ],
-    })
+    // 1. Verify that order exists and belongs to user
+    let order
+    if (productId) {
+      order = await Orders.findOne({
+        where: { id: orderId, userId },
+        include: [
+          {
+            model: OrderItems,
+            as: "items",
+            where: { productId },
+          },
+        ],
+      })
+    } else {
+      order = await Orders.findOne({
+        where: { id: orderId, userId },
+      })
+    }
 
     if (!order) {
       return sendResponse(
         res,
         {
           success: false,
-          message: "Order not found, does not belong to you, or does not contain the specified product.",
+          message: productId
+            ? "Order not found, does not belong to you, or does not contain the specified product."
+            : "Order not found or does not belong to you.",
         },
         404
       )
     }
 
-    // 2. Check if review already exists
+    // 2. Enforce only delivered orders can be reviewed
+    if (!order.status || order.status.toLowerCase() !== "delivered") {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Reviews can only be submitted after the order has been delivered.",
+        },
+        400
+      )
+    }
+
+    // 3. Check if review already exists
+    const targetProductId = productId || null
     let review = await Reviews.findOne({
-      where: { userId, orderId, productId },
+      where: { userId, orderId, productId: targetProductId },
     })
 
     if (review) {
@@ -82,7 +104,7 @@ router.post("/", async function (req, res, next) {
       review = await Reviews.create({
         userId,
         orderId,
-        productId,
+        productId: targetProductId,
         rating: ratingVal,
         comment: comment || "",
       })
