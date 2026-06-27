@@ -1,10 +1,11 @@
 // utils/response.ts
 const sendResponse = (
   res,
-  { success = true, message = "", data = null, error = null },
+  payload = {},
   statusCode = 200
 ) => {
-  return res.status(statusCode).json({ success, message, data, error })
+  const { success = true, message = "", data = null, error = null, ...rest } = payload
+  return res.status(statusCode).json({ success, message, data, error, ...rest })
 }
 
 module.exports = sendResponse
