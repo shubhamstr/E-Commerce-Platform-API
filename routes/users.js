@@ -3,7 +3,8 @@
 var express = require("express")
 var router = express.Router()
 const { Op } = require("sequelize")
-const { Users, Addresses } = require("../models/index")
+const { Users, Addresses, Orders, Products, Categories, Contacts, Reviews } = require("../models/index")
+const sequelize = require("../utils/db")
 const sendResponse = require("../utils/response")
 const bcrypt = require("bcryptjs")
 const { generateToken } = require("../utils/jwt")
@@ -181,6 +182,97 @@ router.post("/login", async function (req, res, next) {
         success: false,
         message: "Internal Server Error",
         error: error,
+      },
+      500
+    )
+  }
+})
+
+/* GET dashboard statistics. */
+router.get("/dashboard-stats", async function (req, res, next) {
+  try {
+    const requestingUser = await Users.findByPk(req.user.userId)
+    if (!requestingUser || (requestingUser.userType !== "admin" && requestingUser.userType !== "seller")) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized access.",
+        },
+        403
+      )
+    }
+
+    const { userType } = requestingUser
+
+    // Common statistics
+    const totalCustomers = await Users.count({ where: { userType: "user" } })
+    const totalSellers = await Users.count({ where: { userType: "seller" } })
+    const totalOrders = await Orders.count()
+    const totalProducts = await Products.count()
+    const totalReviews = await Reviews.count()
+
+    // Order status counts
+    const orderStatuses = await Orders.findAll({
+      attributes: [
+        'status',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: ['status']
+    })
+
+    const statusCounts = {}
+    orderStatuses.forEach(item => {
+      const statusVal = item.status || 'pending'
+      statusCounts[statusVal] = (statusCounts[statusVal] || 0) + (parseInt(item.get('count')) || 0)
+    })
+
+    let data = {
+      totalCustomers,
+      totalSellers,
+      totalOrders,
+      totalProducts,
+      totalReviews,
+      statusCounts,
+      userType
+    }
+
+    // Admin-only statistics
+    if (userType === "admin") {
+      const totalContacts = await Contacts.count()
+      const totalCategories = await Categories.count()
+      const totalActiveLogins = await Users.count({
+        where: {
+          loginToken: {
+            [Op.ne]: null
+          }
+        }
+      })
+      const totalEarningsResult = await Orders.sum('totalAmount') || 0
+      const totalEarnings = parseFloat(totalEarningsResult)
+
+      data = {
+        ...data,
+        totalContacts,
+        totalCategories,
+        totalActiveLogins,
+        totalEarnings
+      }
+    }
+
+    return sendResponse(res, {
+      success: true,
+      message: "Dashboard statistics fetched successfully.",
+      data
+    })
+  } catch (error) {
+    console.error("Dashboard stats error:", error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error.message,
       },
       500
     )
