@@ -33,6 +33,14 @@ const Products = sequelize.define("products", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  sizes: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  colors: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 })
 
 module.exports = Products

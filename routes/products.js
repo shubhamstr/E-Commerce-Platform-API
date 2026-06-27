@@ -227,7 +227,7 @@ router.post("/add", async function (req, res, next) {
         403
       )
     }
-    const { name, description, price, stock, imageUrl, categoryId } = req.body
+    const { name, description, price, stock, imageUrl, categoryId, sizes, colors } = req.body
 
     if (!name) {
       return sendResponse(
@@ -281,6 +281,8 @@ router.post("/add", async function (req, res, next) {
       stock: Number(stock),
       imageUrl,
       categoryId: categoryId || null,
+      sizes: sizes || null,
+      colors: colors || null,
     })
 
     return sendResponse(
@@ -321,7 +323,7 @@ router.post("/update/:id", async function (req, res, next) {
       )
     }
     const { id } = req.params
-    const { name, description, price, stock, imageUrl, categoryId } = req.body
+    const { name, description, price, stock, imageUrl, categoryId, sizes, colors } = req.body
 
     const product = await Products.findOne({ where: { id } })
     if (!product) {
@@ -390,6 +392,8 @@ router.post("/update/:id", async function (req, res, next) {
         stock: stock !== undefined ? Number(stock) : product.stock,
         imageUrl: imageUrl !== undefined ? imageUrl : product.imageUrl,
         categoryId: categoryId !== undefined ? (categoryId || null) : product.categoryId,
+        sizes: sizes !== undefined ? sizes : product.sizes,
+        colors: colors !== undefined ? colors : product.colors,
       },
       { where: { id } }
     )
