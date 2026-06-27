@@ -5,6 +5,75 @@ var router = express.Router()
 const { Op } = require("sequelize")
 const { Categories, Products } = require("../models/index")
 const sendResponse = require("../utils/response")
+const multer = require("multer")
+const path = require("path")
+const fs = require("fs")
+
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, "../public/uploads")
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true })
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir)
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9)
+    cb(null, uniqueSuffix + path.extname(file.originalname))
+  }
+})
+
+const upload = multer({
+  storage: storage,
+  fileFilter: function (req, file, cb) {
+    const filetypes = /jpeg|jpg|png|gif|webp/
+    const mimetype = filetypes.test(file.mimetype)
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase())
+    if (mimetype && extname) {
+      return cb(null, true)
+    }
+    cb(new Error("Only images are allowed (jpeg, jpg, png, gif, webp)"))
+  }
+})
+
+/* POST upload category image. */
+router.post("/upload", upload.single("image"), function (req, res, next) {
+  try {
+    if (!req.file) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "No file uploaded.",
+        },
+        400
+      )
+    }
+    const imageUrl = `/uploads/${req.file.filename}`
+    return sendResponse(
+      res,
+      {
+        success: true,
+        message: "Image uploaded successfully.",
+        imageUrl: imageUrl,
+      },
+      200
+    )
+  } catch (error) {
+    console.error(error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error.message,
+      },
+      500
+    )
+  }
+})
 
 /* GET categories listing. */
 router.get("/get", async function (req, res, next) {
@@ -111,7 +180,7 @@ router.get("/get/:id", async function (req, res, next) {
 /* POST category add. */
 router.post("/add", async function (req, res, next) {
   try {
-    const { name, description } = req.body
+    const { name, description, imageUrl } = req.body
 
     if (!name) {
       return sendResponse(
@@ -140,6 +209,7 @@ router.post("/add", async function (req, res, next) {
     const category = await Categories.create({
       name,
       description,
+      imageUrl,
     })
 
     return sendResponse(
@@ -169,7 +239,7 @@ router.post("/add", async function (req, res, next) {
 router.post("/update/:id", async function (req, res, next) {
   try {
     const { id } = req.params
-    const { name, description } = req.body
+    const { name, description, imageUrl } = req.body
 
     // Check if category exists
     const category = await Categories.findOne({ where: { id } })
@@ -200,7 +270,7 @@ router.post("/update/:id", async function (req, res, next) {
     }
 
     await Categories.update(
-      { name, description },
+      { name, description, imageUrl },
       { where: { id } }
     )
 

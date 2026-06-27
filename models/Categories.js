@@ -13,6 +13,10 @@ const Categories = sequelize.define("categories", {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  imageUrl: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 })
 
 module.exports = Categories
