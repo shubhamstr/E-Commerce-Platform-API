@@ -564,8 +564,46 @@ router.post("/update-password/:id", async function (req, res, next) {
       )
     }
 
+    const { currentPassword, newPassword, password } = req.body
+    const targetPassword = newPassword || password
+    if (!targetPassword) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "New password is required.",
+        },
+        200
+      )
+    }
+
+    // Verify current password if NOT admin
+    if (requestingUser.userType !== "admin") {
+      if (!currentPassword) {
+        return sendResponse(
+          res,
+          {
+            success: false,
+            message: "Current password is required.",
+          },
+          200
+        )
+      }
+      const isMatch = await bcrypt.compare(currentPassword, exists.password)
+      if (!isMatch) {
+        return sendResponse(
+          res,
+          {
+            success: false,
+            message: "Incorrect current password.",
+          },
+          200
+        )
+      }
+    }
+
     // Hash password
-    const hashedPassword = await bcrypt.hash(req.body.password, 10)
+    const hashedPassword = await bcrypt.hash(targetPassword, 10)
 
     const [updatedCount] = await Users.update(
       { password: hashedPassword }, // fields to update
