@@ -89,6 +89,8 @@ router.post("/upload", upload.single("image"), async function (req, res, next) {
   }
 })
 
+const sequelize = require("../utils/db")
+
 /* GET products listing. */
 router.get("/get", async function (req, res, next) {
   try {
@@ -130,6 +132,10 @@ router.get("/get", async function (req, res, next) {
     if (sortField) {
       if (sortField === "category.name") {
         order.push([{ model: Categories, as: "category" }, "name", sortOrder == -1 ? "DESC" : "ASC"])
+      } else if (sortField === "popular") {
+        order.push([sequelize.literal('orderedCount'), sortOrder == -1 ? "DESC" : "ASC"])
+      } else if (sortField === "rated" || sortField === "rating" || sortField === "most_rated") {
+        order.push([sequelize.literal('avgRating'), sortOrder == -1 ? "DESC" : "ASC"])
       } else {
         order.push([sortField, sortOrder == -1 ? "DESC" : "ASC"])
       }
@@ -139,6 +145,34 @@ router.get("/get", async function (req, res, next) {
 
     const count = await Products.count({ where })
     const records = await Products.findAll({
+      attributes: {
+        include: [
+          [
+            sequelize.literal(`(
+              SELECT COALESCE(SUM(quantity), 0)
+              FROM order_items AS orderItems
+              WHERE orderItems.productId = products.id
+            )`),
+            'orderedCount'
+          ],
+          [
+            sequelize.literal(`(
+              SELECT COALESCE(AVG(rating), 0)
+              FROM reviews AS reviews
+              WHERE reviews.productId = products.id
+            )`),
+            'avgRating'
+          ],
+          [
+            sequelize.literal(`(
+              SELECT COUNT(*)
+              FROM reviews AS reviews
+              WHERE reviews.productId = products.id
+            )`),
+            'reviewCount'
+          ]
+        ]
+      },
       where,
       limit,
       offset,
