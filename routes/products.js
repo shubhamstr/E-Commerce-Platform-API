@@ -458,6 +458,14 @@ router.delete("/delete/:id", async function (req, res, next) {
 
     await Products.destroy({ where: { id } })
 
+    // Delete associated image file if it exists locally
+    if (product.imageUrl && product.imageUrl.startsWith("/uploads/")) {
+      const filePath = path.join(__dirname, "../public", product.imageUrl)
+      fs.unlink(filePath, (err) => {
+        if (err) console.error("Error deleting product image file:", err)
+      })
+    }
+
     return sendResponse(
       res,
       {
@@ -509,6 +517,14 @@ router.post("/delete/:id", async function (req, res, next) {
     }
 
     await Products.destroy({ where: { id } })
+
+    // Delete associated image file if it exists locally
+    if (product.imageUrl && product.imageUrl.startsWith("/uploads/")) {
+      const filePath = path.join(__dirname, "../public", product.imageUrl)
+      fs.unlink(filePath, (err) => {
+        if (err) console.error("Error deleting product image file:", err)
+      })
+    }
 
     return sendResponse(
       res,

@@ -422,6 +422,14 @@ router.delete("/delete/:id", async function (req, res, next) {
 
     await Categories.destroy({ where: { id } })
 
+    // Delete associated image file if it exists locally
+    if (category.imageUrl && category.imageUrl.startsWith("/uploads/")) {
+      const filePath = path.join(__dirname, "../public", category.imageUrl)
+      fs.unlink(filePath, (err) => {
+        if (err) console.error("Error deleting category image file:", err)
+      })
+    }
+
     return sendResponse(
       res,
       {
@@ -474,6 +482,14 @@ router.post("/delete/:id", async function (req, res, next) {
     }
 
     await Categories.destroy({ where: { id } })
+
+    // Delete associated image file if it exists locally
+    if (category.imageUrl && category.imageUrl.startsWith("/uploads/")) {
+      const filePath = path.join(__dirname, "../public", category.imageUrl)
+      fs.unlink(filePath, (err) => {
+        if (err) console.error("Error deleting category image file:", err)
+      })
+    }
 
     return sendResponse(
       res,
