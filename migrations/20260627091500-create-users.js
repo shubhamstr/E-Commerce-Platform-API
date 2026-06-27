@@ -36,7 +36,7 @@ module.exports = {
         allowNull: false
       },
       loginToken: {
-        type: Sequelize.STRING,
+        type: Sequelize.TEXT,
         allowNull: true
       },
       createdAt: {

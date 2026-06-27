@@ -30,7 +30,7 @@ const Users = sequelize.define("users", {
     allowNull: false,
   },
   loginToken: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,
     allowNull: true,
   },
 })
