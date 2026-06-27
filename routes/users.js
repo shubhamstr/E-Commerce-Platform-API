@@ -56,6 +56,56 @@ router.post("/register", async function (req, res, next) {
   }
 })
 
+/* POST seller registration. */
+router.post("/register-seller", async function (req, res, next) {
+  try {
+    const { firstName, lastName, email, password, mobileNumber, businessName } = req.body
+
+    // Check if user exists
+    const existingUser = await Users.findOne({ where: { email: email } })
+    if (existingUser) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "An account with this email already exists",
+        },
+        200
+      )
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    const userResp = await Users.create({
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      password: hashedPassword,
+      mobileNumber: mobileNumber || null,
+      userType: "seller",
+      isActive: false, // Seller is inactive until admin approves
+    })
+
+    return sendResponse(res, {
+      success: true,
+      message: "Seller registration submitted successfully. Your account is pending admin approval.",
+      data: { id: userResp.id, email: userResp.email, userType: userResp.userType, isActive: userResp.isActive },
+    })
+  } catch (error) {
+    console.error(error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error,
+      },
+      500
+    )
+  }
+})
+
 /* POST user login. */
 router.post("/login", async function (req, res, next) {
   try {
@@ -83,6 +133,18 @@ router.post("/login", async function (req, res, next) {
         {
           success: false,
           message: "Invalid credentials",
+        },
+        200
+      )
+    }
+
+    // Check if user is active (sellers must be approved by admin)
+    if (!userResp.isActive) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Your account is pending admin approval. Please wait for activation.",
         },
         200
       )
@@ -163,6 +225,7 @@ router.get("/get", async function (req, res, next) {
         "email",
         "mobileNumber",
         "userType",
+        "isActive",
         "loginToken",
         "createdAt",
       ],

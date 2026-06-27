@@ -33,5 +33,10 @@ const Users = sequelize.define("users", {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+  },
 })
 module.exports = Users
