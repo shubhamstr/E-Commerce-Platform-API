@@ -190,6 +190,18 @@ router.post("/login", async function (req, res, next) {
 /* GET users listing. */
 router.get("/get", async function (req, res, next) {
   try {
+    const requestingUser = await Users.findByPk(req.user.userId)
+    if (!requestingUser || requestingUser.userType !== "admin") {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized access.",
+        },
+        403
+      )
+    }
+
     let { page = 1, limit = 10, sortField, sortOrder, filters } = req.query
     page = parseInt(page)
     limit = parseInt(limit)
@@ -289,6 +301,17 @@ router.get("/get", async function (req, res, next) {
 router.get("/get/:id", async function (req, res, next) {
   try {
     const { id } = req.params
+    const requestingUser = await Users.findByPk(req.user.userId)
+    if (!requestingUser || (requestingUser.userType !== "admin" && String(requestingUser.id) !== String(id))) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized access.",
+        },
+        403
+      )
+    }
     const userResp = await Users.findOne({
       where: { id },
       attributes: ["id", "firstName", "lastName", "email", "mobileNumber", "userType", "isActive"],
@@ -348,6 +371,18 @@ router.post("/update/:id", async function (req, res, next) {
   try {
     const { id } = req.params
 
+    const requestingUser = await Users.findByPk(req.user.userId)
+    if (!requestingUser || (requestingUser.userType !== "admin" && String(requestingUser.id) !== String(id))) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized access.",
+        },
+        403
+      )
+    }
+
     // find user
     const exists = await Users.findOne({ where: { id } })
     if (!exists) {
@@ -360,8 +395,17 @@ router.post("/update/:id", async function (req, res, next) {
         404
       )
     }
+
+    // prevent non-admin privilege escalation
+    let updateData = { ...req.body }
+    if (requestingUser.userType !== "admin") {
+      delete updateData.userType
+      delete updateData.isActive
+      delete updateData.loginToken
+    }
+
     const [updatedCount] = await Users.update(
-      { ...req.body }, // fields to update
+      updateData, // fields to update
       {
         where: { id }, // condition
       }
@@ -403,6 +447,18 @@ router.post("/update/:id", async function (req, res, next) {
 router.post("/update-password/:id", async function (req, res, next) {
   try {
     const { id } = req.params
+
+    const requestingUser = await Users.findByPk(req.user.userId)
+    if (!requestingUser || (requestingUser.userType !== "admin" && String(requestingUser.id) !== String(id))) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized access.",
+        },
+        403
+      )
+    }
 
     const exists = await Users.findOne({ where: { id } })
     if (!exists) {

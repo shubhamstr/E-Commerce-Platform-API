@@ -3,7 +3,7 @@
 var express = require("express")
 var router = express.Router()
 const { Op } = require("sequelize")
-const { Categories, Products } = require("../models/index")
+const { Categories, Products, Users } = require("../models/index")
 const sendResponse = require("../utils/response")
 const multer = require("multer")
 const path = require("path")
@@ -39,8 +39,22 @@ const upload = multer({
 })
 
 /* POST upload product image. */
-router.post("/upload", upload.single("image"), function (req, res, next) {
+router.post("/upload", upload.single("image"), async function (req, res, next) {
   try {
+    const user = await Users.findByPk(req.user.userId)
+    if (!user || (user.userType !== "admin" && user.userType !== "seller")) {
+      if (req.file) {
+        fs.unlinkSync(req.file.path)
+      }
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized, permission denied.",
+        },
+        403
+      )
+    }
     if (!req.file) {
       return sendResponse(
         res,
@@ -202,6 +216,17 @@ router.get("/get/:id", async function (req, res, next) {
 /* POST product add. */
 router.post("/add", async function (req, res, next) {
   try {
+    const user = await Users.findByPk(req.user.userId)
+    if (!user || (user.userType !== "admin" && user.userType !== "seller")) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized, permission denied.",
+        },
+        403
+      )
+    }
     const { name, description, price, stock, imageUrl, categoryId } = req.body
 
     if (!name) {
@@ -284,6 +309,17 @@ router.post("/add", async function (req, res, next) {
 /* POST product update. */
 router.post("/update/:id", async function (req, res, next) {
   try {
+    const user = await Users.findByPk(req.user.userId)
+    if (!user || (user.userType !== "admin" && user.userType !== "seller")) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized, permission denied.",
+        },
+        403
+      )
+    }
     const { id } = req.params
     const { name, description, price, stock, imageUrl, categoryId } = req.body
 
@@ -395,6 +431,17 @@ router.post("/update/:id", async function (req, res, next) {
 /* DELETE product delete. */
 router.delete("/delete/:id", async function (req, res, next) {
   try {
+    const user = await Users.findByPk(req.user.userId)
+    if (!user || (user.userType !== "admin" && user.userType !== "seller")) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized, permission denied.",
+        },
+        403
+      )
+    }
     const { id } = req.params
 
     const product = await Products.findOne({ where: { id } })
@@ -436,6 +483,17 @@ router.delete("/delete/:id", async function (req, res, next) {
 /* POST product delete for compatibility. */
 router.post("/delete/:id", async function (req, res, next) {
   try {
+    const user = await Users.findByPk(req.user.userId)
+    if (!user || (user.userType !== "admin" && user.userType !== "seller")) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized, permission denied.",
+        },
+        403
+      )
+    }
     const { id } = req.params
 
     const product = await Products.findOne({ where: { id } })
