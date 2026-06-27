@@ -291,7 +291,7 @@ router.get("/get/:id", async function (req, res, next) {
     const { id } = req.params
     const userResp = await Users.findOne({
       where: { id },
-      attributes: ["id", "firstName", "lastName", "email", "mobileNumber", "userType"],
+      attributes: ["id", "firstName", "lastName", "email", "mobileNumber", "userType", "isActive"],
       // logging: console.log,
       include: [
         {
@@ -416,24 +416,8 @@ router.post("/update-password/:id", async function (req, res, next) {
       )
     }
 
-    // Compare password
-    const isMatch = await bcrypt.compare(
-      req.body.currentPassword,
-      exists.password
-    )
-    if (!isMatch) {
-      return sendResponse(
-        res,
-        {
-          success: false,
-          message: "Current password not matched.",
-        },
-        200
-      )
-    }
-
     // Hash password
-    const hashedPassword = await bcrypt.hash(req.body.newPassword, 10)
+    const hashedPassword = await bcrypt.hash(req.body.password, 10)
 
     const [updatedCount] = await Users.update(
       { password: hashedPassword }, // fields to update
