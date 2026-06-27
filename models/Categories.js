@@ -17,6 +17,11 @@ const Categories = sequelize.define("categories", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  isFeatured: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
 })
 
 module.exports = Categories

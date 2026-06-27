@@ -93,6 +93,7 @@ router.post("/login", async function (req, res, next) {
       email: userResp.email,
       firstName: userResp.firstName,
       lastName: userResp.lastName,
+      userType: userResp.userType,
     })
     console.log("User logged in:", token)
     await Users.update(

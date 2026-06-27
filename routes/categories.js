@@ -4,7 +4,7 @@ var express = require("express")
 var router = express.Router()
 const { Op } = require("sequelize")
 const sequelize = require("../utils/db")
-const { Categories, Products } = require("../models/index")
+const { Categories, Products, Users } = require("../models/index")
 const sendResponse = require("../utils/response")
 const multer = require("multer")
 const path = require("path")
@@ -79,12 +79,15 @@ router.post("/upload", upload.single("image"), function (req, res, next) {
 /* GET categories listing. */
 router.get("/get", async function (req, res, next) {
   try {
-    let { page = 1, limit = 10, sortField, sortOrder, filters } = req.query
+    let { page = 1, limit = 10, sortField, sortOrder, filters, isFeatured } = req.query
     page = parseInt(page)
     limit = parseInt(limit)
     const offset = (page - 1) * limit
 
     let where = {}
+    if (isFeatured !== undefined) {
+      where.isFeatured = isFeatured === 'true' || isFeatured === true;
+    }
     if (filters) {
       const parsed = JSON.parse(filters)
       for (const field in parsed) {
@@ -205,7 +208,19 @@ router.get("/get/:id", async function (req, res, next) {
 /* POST category add. */
 router.post("/add", async function (req, res, next) {
   try {
-    const { name, description, imageUrl } = req.body
+    const user = await Users.findByPk(req.user.userId)
+    if (!user || (user.userType !== "admin" && user.userType !== "seller")) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized. Only admin or seller can perform this action.",
+        },
+        403
+      )
+    }
+
+    const { name, description, imageUrl, isFeatured } = req.body
 
     if (!name) {
       return sendResponse(
@@ -231,10 +246,25 @@ router.post("/add", async function (req, res, next) {
       )
     }
 
+    if (isFeatured === true || isFeatured === 'true') {
+      const featuredCount = await Categories.count({ where: { isFeatured: true } })
+      if (featuredCount >= 2) {
+        return sendResponse(
+          res,
+          {
+            success: false,
+            message: "Cannot feature more than 2 categories.",
+          },
+          200
+        )
+      }
+    }
+
     const category = await Categories.create({
       name,
       description,
       imageUrl,
+      isFeatured: isFeatured === true || isFeatured === 'true',
     })
 
     return sendResponse(
@@ -263,8 +293,20 @@ router.post("/add", async function (req, res, next) {
 /* POST category update. */
 router.post("/update/:id", async function (req, res, next) {
   try {
+    const user = await Users.findByPk(req.user.userId)
+    if (!user || (user.userType !== "admin" && user.userType !== "seller")) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized. Only admin or seller can perform this action.",
+        },
+        403
+      )
+    }
+
     const { id } = req.params
-    const { name, description, imageUrl } = req.body
+    const { name, description, imageUrl, isFeatured } = req.body
 
     // Check if category exists
     const category = await Categories.findOne({ where: { id } })
@@ -294,8 +336,32 @@ router.post("/update/:id", async function (req, res, next) {
       }
     }
 
+    if (isFeatured === true || isFeatured === 'true') {
+      const featuredCount = await Categories.count({
+        where: {
+          isFeatured: true,
+          id: { [Op.ne]: id }
+        }
+      })
+      if (featuredCount >= 2) {
+        return sendResponse(
+          res,
+          {
+            success: false,
+            message: "Cannot feature more than 2 categories.",
+          },
+          200
+        )
+      }
+    }
+
+    const updateData = { name, description, imageUrl }
+    if (isFeatured !== undefined) {
+      updateData.isFeatured = isFeatured === true || isFeatured === 'true'
+    }
+
     await Categories.update(
-      { name, description, imageUrl },
+      updateData,
       { where: { id } }
     )
 
