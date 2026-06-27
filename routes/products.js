@@ -105,6 +105,18 @@ router.get("/get", async function (req, res, next) {
         if (value !== undefined && value !== null) {
           if (field === "categoryId") {
             where[field] = value
+          } else if (field === "price") {
+            if (Array.isArray(value)) {
+              where[field] = {
+                [Op.between]: [value[0], value[1]],
+              }
+            } else if (typeof value === "object") {
+              where[field] = {
+                [Op.between]: [value.min || 0, value.max || 999999],
+              }
+            } else {
+              where[field] = value
+            }
           } else {
             where[field] = {
               [Op.like]: `%${value}%`,
