@@ -7,6 +7,7 @@ const Carts = require("./Carts")
 const Orders = require("./Orders")
 const OrderItems = require("./OrderItems")
 const Contacts = require("./Contacts")
+const Reviews = require("./Reviews")
 
 // Users <-> Addresses
 Users.hasMany(Addresses, {
@@ -108,6 +109,36 @@ OrderItems.belongsTo(Products, {
   as: "product",
 })
 
+// Users <-> Reviews
+Users.hasMany(Reviews, {
+  foreignKey: "userId",
+  as: "reviews",
+})
+Reviews.belongsTo(Users, {
+  foreignKey: "userId",
+  as: "user",
+})
+
+// Products <-> Reviews
+Products.hasMany(Reviews, {
+  foreignKey: "productId",
+  as: "reviews",
+})
+Reviews.belongsTo(Products, {
+  foreignKey: "productId",
+  as: "product",
+})
+
+// Orders <-> Reviews
+Orders.hasMany(Reviews, {
+  foreignKey: "orderId",
+  as: "reviews",
+})
+Reviews.belongsTo(Orders, {
+  foreignKey: "orderId",
+  as: "order",
+})
+
 module.exports = {
   Users,
   Addresses,
@@ -118,5 +149,7 @@ module.exports = {
   Orders,
   OrderItems,
   Contacts,
+  Reviews,
 }
+
 

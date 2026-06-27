@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const express = require("express")
 const router = express.Router()
-const { Carts, Products, Orders, OrderItems, Addresses, Users } = require("../models/index")
+const { Carts, Products, Orders, OrderItems, Addresses, Users, Reviews } = require("../models/index")
 const sendResponse = require("../utils/response")
 const sequelize = require("../utils/db")
 
@@ -157,6 +157,10 @@ router.get("/my", async function (req, res, next) {
               as: "product",
             },
           ],
+        },
+        {
+          model: Reviews,
+          as: "reviews",
         },
       ],
       order: [["createdAt", "DESC"]],
