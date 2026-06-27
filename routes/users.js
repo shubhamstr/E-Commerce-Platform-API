@@ -226,7 +226,7 @@ router.get("/get/:id", async function (req, res, next) {
     const { id } = req.params
     const userResp = await Users.findOne({
       where: { id },
-      attributes: ["id", "firstName", "lastName", "email", "mobileNumber"],
+      attributes: ["id", "firstName", "lastName", "email", "mobileNumber", "userType"],
       // logging: console.log,
       include: [
         {
