@@ -3,6 +3,7 @@
 var express = require("express")
 var router = express.Router()
 const { Op } = require("sequelize")
+const sequelize = require("../utils/db")
 const { Categories, Products } = require("../models/index")
 const sendResponse = require("../utils/response")
 const multer = require("multer")
@@ -109,6 +110,18 @@ router.get("/get", async function (req, res, next) {
       limit,
       offset,
       order,
+      attributes: {
+        include: [
+          [
+            sequelize.literal(`(
+              SELECT COUNT(*)
+              FROM products AS product
+              WHERE product.categoryId = categories.id
+            )`),
+            "productCount"
+          ]
+        ]
+      }
     })
 
     return sendResponse(
@@ -143,6 +156,18 @@ router.get("/get/:id", async function (req, res, next) {
     const { id } = req.params
     const category = await Categories.findOne({
       where: { id },
+      attributes: {
+        include: [
+          [
+            sequelize.literal(`(
+              SELECT COUNT(*)
+              FROM products AS product
+              WHERE product.categoryId = categories.id
+            )`),
+            "productCount"
+          ]
+        ]
+      }
     })
     if (category) {
       return sendResponse(
