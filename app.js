@@ -14,6 +14,7 @@ const NODE_ENV = process.env.NODE_ENV || "development"
 var indexRouter = require("./routes/index")
 var usersRouter = require("./routes/users")
 var addressesRouter = require("./routes/addresses")
+var categoriesRouter = require("./routes/categories")
 
 var app = express()
 
@@ -46,5 +47,6 @@ sequelize.authenticate()
 app.use("/api/", indexRouter)
 app.use("/api/user", usersRouter)
 app.use("/api/address", addressesRouter)
+app.use("/api/category", categoriesRouter)
 
 module.exports = app
