@@ -220,6 +220,10 @@ router.get("/", async function (req, res, next) {
             },
           ],
         },
+        {
+          model: Reviews,
+          as: "reviews",
+        },
       ],
       order: [["createdAt", "DESC"]],
     })
