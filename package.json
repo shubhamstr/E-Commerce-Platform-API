@@ -5,7 +5,9 @@
   "type": "commonjs",
   "scripts": {
     "start": "node ./bin/www",
-    "dev": "nodemon ./bin/www"
+    "dev": "nodemon ./bin/www",
+    "db:migrate": "sequelize db:migrate",
+    "db:migrate:undo": "sequelize db:migrate:undo"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -23,5 +25,8 @@
     "pg": "^8.16.2",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.7"
+  },
+  "devDependencies": {
+    "sequelize-cli": "^6.6.5"
   }
 }

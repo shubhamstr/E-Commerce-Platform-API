@@ -28,17 +28,20 @@ app.use(express.static(path.join(__dirname, "public")))
 
 app.use(authenticateToken)
 
-// seeders
-createDefaultAdmin()
-
-console.log("Server is running...")
-
+// Database connection, synchronization and seeders
 sequelize.authenticate()
-console.log("Connection has been established successfully.")
-
-if (NODE_ENV === "development") {
-  sequelize.sync({ alter: true })
-}
+  .then(() => {
+    console.log("Connection has been established successfully.")
+    if (NODE_ENV === "development") {
+      return sequelize.sync({ alter: true })
+    }
+  })
+  .then(() => {
+    return createDefaultAdmin()
+  })
+  .catch(err => {
+    console.error("Database initialization failed:", err)
+  })
 
 app.use("/api/", indexRouter)
 app.use("/api/user", usersRouter)
