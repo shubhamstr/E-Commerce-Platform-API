@@ -698,7 +698,31 @@ router.post("/bulk-import", async function (req, res, next) {
     }
 
     const defaultDummyImage = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=60"
+    const defaultPlaceholderPath = "/uploads/default-placeholder.png"
+    const defaultPlaceholderFile = path.join(uploadDir, "default-placeholder.png")
+    if (!fs.existsSync(defaultPlaceholderFile)) {
+      const base64Png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      fs.writeFileSync(defaultPlaceholderFile, Buffer.from(base64Png, "base64"))
+    }
     
+    // Helper function to download and save images locally
+    const downloadImage = async (url) => {
+      if (!url) return defaultPlaceholderPath
+      try {
+        const imgRes = await fetch(url)
+        if (!imgRes.ok) return defaultPlaceholderPath
+        const arrayBuffer = await imgRes.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        const filename = `bulk-${Date.now()}-${Math.round(Math.random() * 1e9)}.png`
+        const filepath = path.join(uploadDir, filename)
+        fs.writeFileSync(filepath, buffer)
+        return `/uploads/${filename}`
+      } catch (err) {
+        console.error("Failed to download image:", url, err.message)
+        return defaultPlaceholderPath
+      }
+    }
+
     // Find or create categories map to avoid redundant DB calls
     const categoryCache = {}
     const productsToCreate = []
@@ -713,23 +737,53 @@ router.post("/bulk-import", async function (req, res, next) {
         
       let categoryId = categoryCache[categoryName]
       if (!categoryId) {
-        const [categoryRecord] = await Categories.findOrCreate({
+        // Download category image from the first product of this category
+        let categoryImgUrl = defaultPlaceholderPath
+        if (item.images && item.images.length > 0) {
+          categoryImgUrl = await downloadImage(item.images[0])
+        } else if (item.thumbnail) {
+          categoryImgUrl = await downloadImage(item.thumbnail)
+        } else {
+          categoryImgUrl = await downloadImage(defaultDummyImage)
+        }
+        
+        if (!categoryImgUrl) {
+          categoryImgUrl = defaultPlaceholderPath
+        }
+
+        const [categoryRecord, created] = await Categories.findOrCreate({
           where: { name: categoryName },
           defaults: {
             description: `Auto-generated category for ${categoryName}`,
+            imageUrl: categoryImgUrl,
             isFeatured: false
           }
         })
+        
+        if (!created && (!categoryRecord.imageUrl || categoryRecord.imageUrl === "")) {
+          categoryRecord.imageUrl = categoryImgUrl
+          await categoryRecord.save()
+        }
+
         categoryId = categoryRecord.id
         categoryCache[categoryName] = categoryId
       }
 
       // Check if item has images
-      let imageUrl = defaultDummyImage
+      let rawImgUrl = null
       if (item.images && item.images.length > 0) {
-        imageUrl = item.images[0]
+        rawImgUrl = item.images[0]
       } else if (item.thumbnail) {
-        imageUrl = item.thumbnail
+        rawImgUrl = item.thumbnail
+      }
+
+      let imageUrl = null
+      if (rawImgUrl) {
+        imageUrl = await downloadImage(rawImgUrl)
+      }
+
+      if (!imageUrl) {
+        imageUrl = await downloadImage(defaultDummyImage)
       }
 
       // Unique title suffix if we are duplicating beyond the dummy set
