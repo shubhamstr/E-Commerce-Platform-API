@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const nodemailer = require("nodemailer")
 const { EmailLogs } = require("../models")
+const { formatPrice } = require("./currency")
 
 /**
  * Generate SMTP transporter
@@ -93,8 +94,8 @@ function compileTemplate(templateName, context) {
           <div style="font-size: 12px; color: ${grayColor};">${item.color ? 'Color: ' + item.color : ''} ${item.size ? 'Size: ' + item.size : ''}</div>
         </td>
         <td class="text-right">${item.quantity}</td>
-        <td class="text-right">$${parseFloat(item.price).toFixed(2)}</td>
-        <td class="text-right">$${(parseFloat(item.price) * item.quantity).toFixed(2)}</td>
+        <td class="text-right">${formatPrice(item.price)}</td>
+        <td class="text-right">${formatPrice(parseFloat(item.price) * item.quantity)}</td>
       </tr>
     `).join("")
 
@@ -127,7 +128,7 @@ function compileTemplate(templateName, context) {
           ${itemsRows}
           <tr>
             <td colspan="3" style="font-weight: bold; padding-top: 15px;" class="text-right">Total Amount:</td>
-            <td style="font-weight: bold; color: ${brandColor}; padding-top: 15px;" class="text-right">$${parseFloat(totalAmount).toFixed(2)}</td>
+            <td style="font-weight: bold; color: ${brandColor}; padding-top: 15px;" class="text-right">${formatPrice(totalAmount)}</td>
           </tr>
         </tbody>
       </table>
