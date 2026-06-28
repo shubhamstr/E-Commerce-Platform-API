@@ -108,7 +108,7 @@ router.get("/get", async function (req, res, next) {
       for (const field in parsed) {
         const value = parsed[field]?.value
         if (value !== undefined && value !== null) {
-          if (field === "categoryId") {
+          if (field === "categoryId" || field === "createdById") {
             where[field] = value
           } else if (field === "price") {
             if (Array.isArray(value)) {
@@ -186,6 +186,11 @@ router.get("/get", async function (req, res, next) {
           as: "category",
           attributes: ["id", "name"],
         },
+        {
+          model: Users,
+          as: "creator",
+          attributes: ["id", "firstName", "lastName", "email", "mobileNumber", "userType"]
+        }
       ],
     })
 
@@ -231,6 +236,11 @@ router.get("/get/:id", async function (req, res, next) {
           as: "category",
           attributes: ["id", "name"],
         },
+        {
+          model: Users,
+          as: "creator",
+          attributes: ["id", "firstName", "lastName", "email", "mobileNumber", "userType"]
+        }
       ],
     })
     if (product) {

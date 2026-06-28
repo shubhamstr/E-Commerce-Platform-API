@@ -10,6 +10,7 @@ const excludedPaths = [
   "/api/order/track",
   "/api/user/forgot-password",
   "/api/user/reset-password",
+  "/api/user/seller-profile",
 ]
 
 module.exports = {

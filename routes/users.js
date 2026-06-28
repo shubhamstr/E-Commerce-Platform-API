@@ -862,5 +862,172 @@ router.delete("/delete/:id", async function (req, res, next) {
   }
 })
 
-module.exports = router
+/* GET seller profile and analytics. */
+router.get("/seller-profile", async function (req, res, next) {
+  try {
+    const sellerId = parseInt(req.query.id)
+    if (!sellerId) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Seller ID is required."
+        },
+        400
+      )
+    }
 
+    const seller = await Users.findOne({
+      where: { id: sellerId, userType: "seller" },
+      attributes: ["id", "firstName", "lastName", "email", "mobileNumber", "createdAt"]
+    })
+
+    if (!seller) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Seller not found."
+        },
+        404
+      )
+    }
+
+    const { OrderItems } = require("../models/index")
+
+    // 1. Total products count
+    const totalProducts = await Products.count({ where: { createdById: sellerId } })
+
+    // 2. Reviews related to this seller's products
+    const sellerReviews = await Reviews.findAll({
+      include: [
+        {
+          model: Products,
+          as: "product",
+          where: { createdById: sellerId },
+          attributes: ["id", "name"]
+        },
+        {
+          model: Users,
+          as: "user",
+          attributes: ["id", "firstName", "lastName"]
+        }
+      ],
+      order: [["createdAt", "DESC"]]
+    })
+
+    // Calculate rating analytics
+    const totalReviews = sellerReviews.length
+    let totalRatingSum = 0
+    const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+    
+    sellerReviews.forEach(r => {
+      totalRatingSum += r.rating
+      if (ratingDistribution[r.rating] !== undefined) {
+        ratingDistribution[r.rating]++
+      }
+    })
+    
+    const averageRating = totalReviews > 0 ? parseFloat((totalRatingSum / totalReviews).toFixed(1)) : 0
+
+    // 3. Sales statistics from OrderItems
+    const orderItems = await OrderItems.findAll({
+      include: [
+        {
+          model: Products,
+          as: "product",
+          where: { createdById: sellerId },
+          attributes: ["id", "name"]
+        },
+        {
+          model: Orders,
+          as: "order",
+          attributes: ["id", "createdAt", "status"]
+        }
+      ]
+    })
+
+    // Calculate items sold, total revenue, monthly sales trend
+    let totalItemsSold = 0
+    let totalRevenue = 0
+    const monthlySales = {}
+
+    orderItems.forEach(item => {
+      if (item.order && item.order.status !== "Cancelled") {
+        totalItemsSold += item.quantity
+        totalRevenue += parseFloat(item.price) * item.quantity
+
+        if (item.order.createdAt) {
+          const date = new Date(item.order.createdAt)
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+          monthlySales[monthKey] = (monthlySales[monthKey] || 0) + (parseFloat(item.price) * item.quantity)
+        }
+      }
+    })
+
+    const monthlySalesTrend = Object.keys(monthlySales)
+      .sort()
+      .map(month => ({
+        month,
+        revenue: parseFloat(monthlySales[month].toFixed(2))
+      }))
+
+    const productsList = await Products.findAll({
+      where: { createdById: sellerId },
+      include: [
+        {
+          model: Categories,
+          as: "category",
+          attributes: ["id", "name"]
+        }
+      ]
+    })
+
+    const categoryDistribution = {}
+    productsList.forEach(p => {
+      const catName = p.category ? p.category.name : "Uncategorized"
+      categoryDistribution[catName] = (categoryDistribution[catName] || 0) + 1
+    })
+
+    const formattedCategoryDistribution = Object.keys(categoryDistribution).map(cat => ({
+      category: cat,
+      count: categoryDistribution[cat]
+    }))
+
+    return sendResponse(
+      res,
+      {
+        success: true,
+        message: "Seller profile fetched successfully.",
+        data: {
+          seller,
+          analytics: {
+            totalProducts,
+            totalReviews,
+            averageRating,
+            ratingDistribution,
+            totalItemsSold,
+            totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+            monthlySalesTrend,
+            categoryDistribution: formattedCategoryDistribution
+          },
+          reviews: sellerReviews
+        }
+      },
+      200
+    )
+  } catch (error) {
+    console.error(error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error.message
+      },
+      500
+    )
+  }
+})
+
+module.exports = router
