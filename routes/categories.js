@@ -269,7 +269,6 @@ router.post("/add", async function (req, res, next) {
       isFeatured: isFeatured === true || isFeatured === 'true',
     })
 
-    const user = await Users.findByPk(req.user.userId)
     await logAudit(req, {
       action: "CREATE_CATEGORY",
       entityType: "Category",
