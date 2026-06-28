@@ -22,6 +22,7 @@ var cartsRouter = require("./routes/carts")
 var ordersRouter = require("./routes/orders")
 var reviewsRouter = require("./routes/reviews")
 var notificationsRouter = require("./routes/notifications")
+var emailLogsRouter = require("./routes/emailLogs")
 
 var app = express()
 
@@ -62,5 +63,6 @@ app.use("/api/cart", cartsRouter)
 app.use("/api/order", ordersRouter)
 app.use("/api/review", reviewsRouter)
 app.use("/api/notification", notificationsRouter)
+app.use("/api/email-log", emailLogsRouter)
 
 module.exports = app

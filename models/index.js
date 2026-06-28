@@ -9,6 +9,7 @@ const OrderItems = require("./OrderItems")
 const Contacts = require("./Contacts")
 const Reviews = require("./Reviews")
 const Notifications = require("./Notifications")
+const EmailLogs = require("./EmailLogs")
 
 // Users <-> Addresses
 Users.hasMany(Addresses, {
@@ -172,6 +173,7 @@ module.exports = {
   Contacts,
   Reviews,
   Notifications,
+  EmailLogs,
 }
 
 

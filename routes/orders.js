@@ -6,6 +6,7 @@ const { Carts, Products, Orders, OrderItems, Addresses, Users, Reviews } = requi
 const sendResponse = require("../utils/response")
 const sequelize = require("../utils/db")
 const { triggerNotification } = require("../utils/notificationHelper")
+const { sendMail } = require("../utils/mail")
 
 // POST checkout - place an order from the user's cart
 router.post("/checkout", async function (req, res, next) {
@@ -109,6 +110,33 @@ router.post("/checkout", async function (req, res, next) {
     })
 
     await transaction.commit()
+
+    // Send order confirmation email
+    try {
+      const user = await Users.findByPk(userId)
+      if (user) {
+        const emailItems = cartItems.map(item => ({
+          productName: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price
+        }))
+
+        await sendMail({
+          to: user.email,
+          subject: `Order Confirmation - Order #${order.id}`,
+          templateName: "order-place",
+          context: {
+            name: `${user.firstName} ${user.lastName}`,
+            orderId: order.id,
+            items: emailItems,
+            totalAmount: order.totalAmount,
+            shippingAddress: address
+          }
+        })
+      }
+    } catch (mailErr) {
+      console.error("Order placed email failed to send:", mailErr)
+    }
 
     // Trigger notification
     triggerNotification(
@@ -317,6 +345,25 @@ router.put("/:id/status", async function (req, res, next) {
     order.status = finalStatus
     await order.save()
 
+    // Send status change email
+    try {
+      const customer = await Users.findByPk(order.userId)
+      if (customer) {
+        await sendMail({
+          to: customer.email,
+          subject: `Order Update - Order #${order.id}`,
+          templateName: "order-status",
+          context: {
+            name: `${customer.firstName} ${customer.lastName}`,
+            orderId: order.id,
+            status: finalStatus
+          }
+        })
+      }
+    } catch (mailErr) {
+      console.error("Order status update email failed to send:", mailErr)
+    }
+
     if (finalStatus.startsWith("cancelled")) {
       triggerNotification(
         "order_cancelled",
@@ -375,6 +422,25 @@ router.put("/:id/cancel", async function (req, res, next) {
 
     order.status = "cancelled by customer"
     await order.save()
+
+    // Send status change email
+    try {
+      const customer = await Users.findByPk(order.userId)
+      if (customer) {
+        await sendMail({
+          to: customer.email,
+          subject: `Order Cancelled - Order #${order.id}`,
+          templateName: "order-status",
+          context: {
+            name: `${customer.firstName} ${customer.lastName}`,
+            orderId: order.id,
+            status: "cancelled by customer"
+          }
+        })
+      }
+    } catch (mailErr) {
+      console.error("Order cancel email failed to send:", mailErr)
+    }
 
     triggerNotification(
       "order_cancelled",

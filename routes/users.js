@@ -9,6 +9,7 @@ const sendResponse = require("../utils/response")
 const bcrypt = require("bcryptjs")
 const { generateToken } = require("../utils/jwt")
 const { triggerNotification } = require("../utils/notificationHelper")
+const { sendMail } = require("../utils/mail")
 
 /* POST user registering. */
 router.post("/register", async function (req, res, next) {
@@ -193,6 +194,42 @@ router.post("/login", async function (req, res, next) {
       },
       500
     )
+  }
+})
+
+/* POST forgot password. */
+router.post("/forgot-password", async function (req, res, next) {
+  try {
+    const { email } = req.body
+    if (!email) {
+      return sendResponse(res, { success: false, message: "Email is required." }, 400)
+    }
+
+    const user = await Users.findOne({ where: { email } })
+    if (!user) {
+      return sendResponse(res, { success: true, message: "If an account with that email exists, we have sent password reset instructions." })
+    }
+
+    const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+    const resetLink = `${process.env.WEBSITE_URL || "http://localhost:3000"}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
+
+    await sendMail({
+      to: email,
+      subject: "Reset Your Password",
+      templateName: "forgot-password",
+      context: {
+        name: `${user.firstName} ${user.lastName}`,
+        resetLink
+      }
+    })
+
+    return sendResponse(res, {
+      success: true,
+      message: "Password reset link sent to your email."
+    })
+  } catch (error) {
+    console.error("Forgot password error:", error)
+    return sendResponse(res, { success: false, message: "Internal Server Error", error: error.message }, 500)
   }
 })
 
@@ -504,6 +541,8 @@ router.post("/update/:id", async function (req, res, next) {
       delete updateData.loginToken
     }
 
+    const wasApproved = exists.userType === "seller" && !exists.isActive && (updateData.isActive === true || updateData.isActive === "true")
+
     const [updatedCount] = await Users.update(
       updateData, // fields to update
       {
@@ -511,6 +550,18 @@ router.post("/update/:id", async function (req, res, next) {
       }
     )
     if (updatedCount) {
+      if (wasApproved) {
+        sendMail({
+          to: exists.email,
+          subject: "Your Seller Account Approved!",
+          templateName: "seller-approved",
+          context: {
+            name: `${exists.firstName} ${exists.lastName}`,
+            dashboardLink: process.env.ADMIN_URL || "http://localhost:3001"
+          }
+        }).catch(err => console.error("Failed to send seller approved email:", err))
+      }
+
       return sendResponse(
         res,
         {
