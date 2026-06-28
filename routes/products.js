@@ -685,6 +685,7 @@ router.post("/bulk-import", async function (req, res, next) {
     }
     const result = await response.json()
     const dummyProducts = result.products || []
+    console.log("Bulk import requested: count =", count, "Fetched dummyProducts =", dummyProducts.length)
 
     if (dummyProducts.length === 0) {
       return sendResponse(
@@ -722,6 +723,10 @@ router.post("/bulk-import", async function (req, res, next) {
         return defaultPlaceholderPath
       }
     }
+
+    // Fetch all existing product names to avoid duplicates
+    const existingProducts = await Products.findAll({ attributes: ["name"], raw: true })
+    const existingNamesSet = new Set(existingProducts.map(p => p.name.toLowerCase().trim()))
 
     // Find or create categories map to avoid redundant DB calls
     const categoryCache = {}
@@ -769,6 +774,22 @@ router.post("/bulk-import", async function (req, res, next) {
         categoryCache[categoryName] = categoryId
       }
 
+      // Validate item presence and name
+      if (!item || !item.title || typeof item.title !== "string" || item.title.trim() === "") {
+        continue
+      }
+
+      // Unique title suffix if we are duplicating beyond the dummy set
+      const titleSuffix = i >= dummyProducts.length ? ` #${Math.floor(i / dummyProducts.length) + 1}` : ""
+      const productName = `${item.title}${titleSuffix}`
+
+      // Check if product name already exists in database or current import batch
+      const lowerName = productName.toLowerCase().trim()
+      if (existingNamesSet.has(lowerName)) {
+        continue
+      }
+      existingNamesSet.add(lowerName)
+
       // Check if item has images
       let rawImgUrl = null
       if (item.images && item.images.length > 0) {
@@ -783,26 +804,27 @@ router.post("/bulk-import", async function (req, res, next) {
       }
 
       if (!imageUrl) {
-        imageUrl = await downloadImage(defaultDummyImage)
+        imageUrl = defaultPlaceholderPath
       }
 
-      // Unique title suffix if we are duplicating beyond the dummy set
-      const titleSuffix = i >= dummyProducts.length ? ` #${Math.floor(i / dummyProducts.length) + 1}` : ""
-      const productName = `${item.title}${titleSuffix}`
+      const productDescription = item.description || "No description provided."
+      const productPrice = typeof item.price === "number" && item.price >= 0 ? item.price : 9.99
+      const productStock = typeof item.stock === "number" && item.stock >= 0 ? item.stock : 50
 
       productsToCreate.push({
-        categoryId,
+        categoryId: categoryId || null,
         createdById: user.id,
         name: productName,
-        description: item.description || "No description provided.",
-        price: item.price || 9.99,
-        stock: item.stock || 50,
+        description: productDescription,
+        price: productPrice,
+        stock: productStock,
         imageUrl: imageUrl,
         sizes: "M,L,XL",
         colors: "Black,White"
       })
     }
 
+    console.log("productsToCreate array length:", productsToCreate.length)
     // Bulk create products
     await Products.bulkCreate(productsToCreate)
 
