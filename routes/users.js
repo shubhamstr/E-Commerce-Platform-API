@@ -8,6 +8,7 @@ const sequelize = require("../utils/db")
 const sendResponse = require("../utils/response")
 const bcrypt = require("bcryptjs")
 const { generateToken } = require("../utils/jwt")
+const { triggerNotification } = require("../utils/notificationHelper")
 
 /* POST user registering. */
 router.post("/register", async function (req, res, next) {
@@ -87,6 +88,13 @@ router.post("/register-seller", async function (req, res, next) {
       userType: "seller",
       isActive: false, // Seller is inactive until admin approves
     })
+
+    // Trigger notification for admins
+    triggerNotification(
+      "new_seller",
+      "New Seller Registration",
+      `A new seller (${firstName} ${lastName} - ${email}) has registered and is pending approval.`
+    ).catch(err => console.error("Notification trigger failed:", err))
 
     return sendResponse(res, {
       success: true,

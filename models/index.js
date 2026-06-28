@@ -8,6 +8,7 @@ const Orders = require("./Orders")
 const OrderItems = require("./OrderItems")
 const Contacts = require("./Contacts")
 const Reviews = require("./Reviews")
+const Notifications = require("./Notifications")
 
 // Users <-> Addresses
 Users.hasMany(Addresses, {
@@ -139,6 +140,16 @@ Reviews.belongsTo(Orders, {
   as: "order",
 })
 
+// Users <-> Notifications
+Users.hasMany(Notifications, {
+  foreignKey: "userId",
+  as: "notifications",
+})
+Notifications.belongsTo(Users, {
+  foreignKey: "userId",
+  as: "user",
+})
+
 module.exports = {
   Users,
   Addresses,
@@ -150,6 +161,7 @@ module.exports = {
   OrderItems,
   Contacts,
   Reviews,
+  Notifications,
 }
 
 

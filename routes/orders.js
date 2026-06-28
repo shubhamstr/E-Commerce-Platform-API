@@ -5,6 +5,7 @@ const router = express.Router()
 const { Carts, Products, Orders, OrderItems, Addresses, Users, Reviews } = require("../models/index")
 const sendResponse = require("../utils/response")
 const sequelize = require("../utils/db")
+const { triggerNotification } = require("../utils/notificationHelper")
 
 // POST checkout - place an order from the user's cart
 router.post("/checkout", async function (req, res, next) {
@@ -108,6 +109,13 @@ router.post("/checkout", async function (req, res, next) {
     })
 
     await transaction.commit()
+
+    // Trigger notification
+    triggerNotification(
+      "order_placed",
+      "New Order Placed",
+      `Order #${order.id} has been placed. Total amount: $${order.totalAmount}`
+    ).catch(err => console.error("Notification trigger failed:", err))
 
     return sendResponse(
       res,
@@ -309,6 +317,14 @@ router.put("/:id/status", async function (req, res, next) {
     order.status = finalStatus
     await order.save()
 
+    if (finalStatus.startsWith("cancelled")) {
+      triggerNotification(
+        "order_cancelled",
+        "Order Cancelled",
+        `Order #${order.id} has been cancelled by ${userType}.`
+      ).catch(err => console.error("Notification trigger failed:", err))
+    }
+
     return sendResponse(res, {
       success: true,
       message: "Order status updated successfully.",
@@ -359,6 +375,12 @@ router.put("/:id/cancel", async function (req, res, next) {
 
     order.status = "cancelled by customer"
     await order.save()
+
+    triggerNotification(
+      "order_cancelled",
+      "Order Cancelled",
+      `Order #${order.id} has been cancelled by customer.`
+    ).catch(err => console.error("Notification trigger failed:", err))
 
     return sendResponse(res, {
       success: true,

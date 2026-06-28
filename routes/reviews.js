@@ -4,6 +4,7 @@ const express = require("express")
 const router = express.Router()
 const { Reviews, Products, Orders, OrderItems, Users } = require("../models/index")
 const sendResponse = require("../utils/response")
+const { triggerNotification } = require("../utils/notificationHelper")
 
 // POST /api/review - Create or update a review
 router.post("/", async function (req, res, next) {
@@ -108,6 +109,17 @@ router.post("/", async function (req, res, next) {
         rating: ratingVal,
         comment: comment || "",
       })
+
+      // Fetch user details for notification
+      const user = await Users.findByPk(userId)
+      const customerName = user ? `${user.firstName} ${user.lastName}` : "A customer"
+
+      // Trigger notification
+      triggerNotification(
+        "review_added",
+        "New Product Review",
+        `${customerName} added a ${ratingVal}-star review for Product ID #${targetProductId || 'N/A'}. Comment: "${comment || ''}"`
+      ).catch(err => console.error("Notification trigger failed:", err))
 
       return sendResponse(
         res,
