@@ -135,7 +135,7 @@ router.get("/get", async function (req, res, next) {
     if (sortField) {
       if (sortField === "category.name") {
         order.push([{ model: Categories, as: "category" }, "name", sortOrder == -1 ? "DESC" : "ASC"])
-      } else if (sortField === "popular") {
+      } else if (sortField === "popular" || sortField === "most_purchased") {
         order.push([sequelize.literal('orderedCount'), sortOrder == -1 ? "DESC" : "ASC"])
       } else if (sortField === "rated" || sortField === "rating" || sortField === "most_rated") {
         order.push([sequelize.literal('avgRating'), sortOrder == -1 ? "DESC" : "ASC"])
