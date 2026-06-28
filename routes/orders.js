@@ -177,7 +177,9 @@ router.post("/checkout", async function (req, res, next) {
 router.get("/my", async function (req, res, next) {
   try {
     const userId = req.user.userId
-    const orders = await Orders.findAll({
+    let { page, limit } = req.query
+
+    let queryOptions = {
       where: { userId },
       include: [
         {
@@ -200,12 +202,31 @@ router.get("/my", async function (req, res, next) {
         },
       ],
       order: [["createdAt", "DESC"]],
-    })
+    }
 
-    return sendResponse(res, {
-      success: true,
-      data: orders,
-    })
+    if (page && limit) {
+      page = parseInt(page)
+      limit = parseInt(limit)
+      queryOptions.limit = limit
+      queryOptions.offset = (page - 1) * limit
+
+      const count = await Orders.count({ where: { userId } })
+      const orders = await Orders.findAll(queryOptions)
+
+      return sendResponse(res, {
+        success: true,
+        data: {
+          records: orders,
+          total: count,
+        },
+      })
+    } else {
+      const orders = await Orders.findAll(queryOptions)
+      return sendResponse(res, {
+        success: true,
+        data: orders,
+      })
+    }
   } catch (error) {
     console.error("Fetch my orders error:", error)
     return sendResponse(
