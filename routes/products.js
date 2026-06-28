@@ -649,4 +649,133 @@ router.post("/delete/:id", async function (req, res, next) {
   }
 })
 
+
+/* POST bulk import products. */
+router.post("/bulk-import", async function (req, res, next) {
+  try {
+    const user = await Users.findByPk(req.user.userId)
+    if (!user || (user.userType !== "admin" && user.userType !== "seller")) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized, permission denied.",
+        },
+        403
+      )
+    }
+
+    let { count } = req.body
+    count = parseInt(count)
+    if (isNaN(count) || count <= 0) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Please provide a valid count greater than 0.",
+        },
+        400
+      )
+    }
+
+    // Fetch products from DummyJSON
+    const response = await fetch("https://dummyjson.com/products?limit=100")
+    if (!response.ok) {
+      throw new Error(`Failed to fetch from DummyJSON: ${response.statusText}`)
+    }
+    const result = await response.json()
+    const dummyProducts = result.products || []
+
+    if (dummyProducts.length === 0) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "No dummy products found from DummyJSON API.",
+        },
+        400
+      )
+    }
+
+    const defaultDummyImage = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=60"
+    
+    // Find or create categories map to avoid redundant DB calls
+    const categoryCache = {}
+    const productsToCreate = []
+    
+    for (let i = 0; i < count; i++) {
+      const item = dummyProducts[i % dummyProducts.length]
+      
+      // Category handling
+      const categoryName = item.category 
+        ? item.category.charAt(0).toUpperCase() + item.category.slice(1)
+        : "Uncategorized"
+        
+      let categoryId = categoryCache[categoryName]
+      if (!categoryId) {
+        const [categoryRecord] = await Categories.findOrCreate({
+          where: { name: categoryName },
+          defaults: {
+            description: `Auto-generated category for ${categoryName}`,
+            isFeatured: false
+          }
+        })
+        categoryId = categoryRecord.id
+        categoryCache[categoryName] = categoryId
+      }
+
+      // Check if item has images
+      let imageUrl = defaultDummyImage
+      if (item.images && item.images.length > 0) {
+        imageUrl = item.images[0]
+      } else if (item.thumbnail) {
+        imageUrl = item.thumbnail
+      }
+
+      // Unique title suffix if we are duplicating beyond the dummy set
+      const titleSuffix = i >= dummyProducts.length ? ` #${Math.floor(i / dummyProducts.length) + 1}` : ""
+      const productName = `${item.title}${titleSuffix}`
+
+      productsToCreate.push({
+        categoryId,
+        createdById: user.id,
+        name: productName,
+        description: item.description || "No description provided.",
+        price: item.price || 9.99,
+        stock: item.stock || 50,
+        imageUrl: imageUrl,
+        sizes: "M,L,XL",
+        colors: "Black,White"
+      })
+    }
+
+    // Bulk create products
+    await Products.bulkCreate(productsToCreate)
+
+    return sendResponse(
+      res,
+      {
+        success: true,
+        message: `Successfully imported ${count} products and configured their categories.`,
+        data: {
+          importedCount: count,
+          categoriesCreated: Object.keys(categoryCache)
+        }
+      },
+      201
+    )
+  } catch (error) {
+    console.error("Bulk import failed:", error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error during bulk import.",
+        error: error.message,
+      },
+      500
+    )
+  }
+})
+
 module.exports = router
