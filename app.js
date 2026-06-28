@@ -35,6 +35,9 @@ app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
 app.use(express.static(path.join(__dirname, "public")))
 
+const swagger = require("./utils/swagger")
+app.use("/api-docs", swagger.serve, swagger.setup)
+
 app.use(authenticateToken)
 
 // Database connection, synchronization and seeders
