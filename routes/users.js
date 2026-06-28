@@ -211,7 +211,20 @@ router.post("/forgot-password", async function (req, res, next) {
     }
 
     const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-    const resetLink = `${process.env.WEBSITE_URL || "http://localhost:3000"}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
+    
+    // Save token to user with 1 hour expiration
+    user.resetPasswordToken = resetToken
+    user.resetPasswordExpires = new Date(Date.now() + 3600000)
+    await user.save()
+
+    let resetLink = ""
+    if (user.userType === "admin" || user.userType === "seller") {
+      const adminUrl = process.env.ADMIN_URL || "http://localhost:4010"
+      resetLink = `${adminUrl}/ecom/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
+    } else {
+      const websiteUrl = process.env.WEBSITE_URL || "http://localhost:4005"
+      resetLink = `${websiteUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
+    }
 
     await sendMail({
       to: email,
@@ -232,6 +245,47 @@ router.post("/forgot-password", async function (req, res, next) {
     return sendResponse(res, { success: false, message: "Internal Server Error", error: error.message }, 500)
   }
 })
+
+/* POST reset password. */
+router.post("/reset-password", async function (req, res, next) {
+  try {
+    const { email, token, password } = req.body
+    if (!email || !token || !password) {
+      return sendResponse(res, { success: false, message: "Email, token, and password are required." }, 400)
+    }
+
+    const user = await Users.findOne({ where: { email } })
+    if (!user) {
+      return sendResponse(res, { success: false, message: "User not found." }, 404)
+    }
+
+    if (user.resetPasswordToken !== token) {
+      return sendResponse(res, { success: false, message: "Invalid password reset token." }, 400)
+    }
+
+    if (!user.resetPasswordExpires || new Date(user.resetPasswordExpires) < new Date()) {
+      return sendResponse(res, { success: false, message: "Password reset token has expired." }, 400)
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // Save and clear token fields
+    user.password = hashedPassword
+    user.resetPasswordToken = null
+    user.resetPasswordExpires = null
+    await user.save()
+
+    return sendResponse(res, {
+      success: true,
+      message: "Password has been reset successfully."
+    })
+  } catch (error) {
+    console.error("Reset password error:", error)
+    return sendResponse(res, { success: false, message: "Internal Server Error", error: error.message }, 500)
+  }
+})
+
 
 /* GET dashboard statistics. */
 router.get("/dashboard-stats", async function (req, res, next) {
