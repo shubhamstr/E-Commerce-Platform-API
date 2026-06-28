@@ -9,6 +9,8 @@ const sendResponse = require("../utils/response")
 const multer = require("multer")
 const path = require("path")
 const fs = require("fs")
+const { logAudit } = require("../utils/auditLogger")
+
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, "../public/uploads")
@@ -267,6 +269,16 @@ router.post("/add", async function (req, res, next) {
       isFeatured: isFeatured === true || isFeatured === 'true',
     })
 
+    const user = await Users.findByPk(req.user.userId)
+    await logAudit(req, {
+      action: "CREATE_CATEGORY",
+      entityType: "Category",
+      entityId: category.id,
+      description: `Category "${category.name}" created by ${user.email}`,
+      changes: category.toJSON(),
+      status: "success"
+    })
+
     return sendResponse(
       res,
       {
@@ -367,6 +379,18 @@ router.post("/update/:id", async function (req, res, next) {
 
     const updatedCategory = await Categories.findOne({ where: { id } })
 
+    await logAudit(req, {
+      action: "UPDATE_CATEGORY",
+      entityType: "Category",
+      entityId: id,
+      description: `Category "${updatedCategory.name}" updated by ${user.email}`,
+      changes: {
+        before: { name: category.name, description: category.description, imageUrl: category.imageUrl, isFeatured: category.isFeatured },
+        after: { name: updatedCategory.name, description: updatedCategory.description, imageUrl: updatedCategory.imageUrl, isFeatured: updatedCategory.isFeatured }
+      },
+      status: "success"
+    })
+
     return sendResponse(
       res,
       {
@@ -430,6 +454,16 @@ router.delete("/delete/:id", async function (req, res, next) {
       })
     }
 
+    const user = await Users.findByPk(req.user.userId)
+    await logAudit(req, {
+      action: "DELETE_CATEGORY",
+      entityType: "Category",
+      entityId: id,
+      description: `Category "${category.name}" deleted by ${user?.email || 'Unknown'}`,
+      changes: category.toJSON(),
+      status: "success"
+    })
+
     return sendResponse(
       res,
       {
@@ -490,6 +524,16 @@ router.post("/delete/:id", async function (req, res, next) {
         if (err) console.error("Error deleting category image file:", err)
       })
     }
+
+    const user = await Users.findByPk(req.user.userId)
+    await logAudit(req, {
+      action: "DELETE_CATEGORY",
+      entityType: "Category",
+      entityId: id,
+      description: `Category "${category.name}" deleted by ${user?.email || 'Unknown'}`,
+      changes: category.toJSON(),
+      status: "success"
+    })
 
     return sendResponse(
       res,

@@ -12,6 +12,7 @@ const Notifications = require("./Notifications")
 const EmailLogs = require("./EmailLogs")
 const Coupons = require("./Coupons")
 const SystemLogs = require("./SystemLogs")
+const AuditLogs = require("./AuditLogs")
 
 // Users <-> Addresses
 Users.hasMany(Addresses, {
@@ -173,6 +174,16 @@ Coupons.belongsTo(Users, {
   as: "creator",
 })
 
+// Users <-> AuditLogs
+Users.hasMany(AuditLogs, {
+  foreignKey: "userId",
+  as: "auditLogs",
+})
+AuditLogs.belongsTo(Users, {
+  foreignKey: "userId",
+  as: "user",
+})
+
 module.exports = {
   Users,
   Addresses,
@@ -188,6 +199,7 @@ module.exports = {
   EmailLogs,
   Coupons,
   SystemLogs,
+  AuditLogs,
 }
 
 

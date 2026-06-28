@@ -8,6 +8,8 @@ const sendResponse = require("../utils/response")
 const multer = require("multer")
 const path = require("path")
 const fs = require("fs")
+const { logAudit } = require("../utils/auditLogger")
+
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, "../public/uploads")
@@ -349,6 +351,15 @@ router.post("/add", async function (req, res, next) {
       createdById: req.user.userId,
     })
 
+    await logAudit(req, {
+      action: "CREATE_PRODUCT",
+      entityType: "Product",
+      entityId: product.id,
+      description: `Product "${product.name}" created by ${user.email}`,
+      changes: product.toJSON(),
+      status: "success"
+    })
+
     return sendResponse(
       res,
       {
@@ -484,6 +495,18 @@ router.post("/update/:id", async function (req, res, next) {
       ],
     })
 
+    await logAudit(req, {
+      action: "UPDATE_PRODUCT",
+      entityType: "Product",
+      entityId: id,
+      description: `Product "${updatedProduct.name}" updated by ${user.email}`,
+      changes: {
+        before: { name: product.name, description: product.description, price: product.price, stock: product.stock, categoryId: product.categoryId, sizes: product.sizes, colors: product.colors, imageUrl: product.imageUrl },
+        after: { name: updatedProduct.name, description: updatedProduct.description, price: updatedProduct.price, stock: updatedProduct.stock, categoryId: updatedProduct.categoryId, sizes: updatedProduct.sizes, colors: updatedProduct.colors, imageUrl: updatedProduct.imageUrl }
+      },
+      status: "success"
+    })
+
     return sendResponse(
       res,
       {
@@ -556,6 +579,15 @@ router.delete("/delete/:id", async function (req, res, next) {
       })
     }
 
+    await logAudit(req, {
+      action: "DELETE_PRODUCT",
+      entityType: "Product",
+      entityId: id,
+      description: `Product "${product.name}" deleted by ${user.email}`,
+      changes: product.toJSON(),
+      status: "success"
+    })
+
     return sendResponse(
       res,
       {
@@ -626,6 +658,15 @@ router.post("/delete/:id", async function (req, res, next) {
         if (err) console.error("Error deleting product image file:", err)
       })
     }
+
+    await logAudit(req, {
+      action: "DELETE_PRODUCT",
+      entityType: "Product",
+      entityId: id,
+      description: `Product "${product.name}" deleted by ${user.email}`,
+      changes: product.toJSON(),
+      status: "success"
+    })
 
     return sendResponse(
       res,

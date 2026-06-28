@@ -10,6 +10,8 @@ const bcrypt = require("bcryptjs")
 const { generateToken } = require("../utils/jwt")
 const { triggerNotification } = require("../utils/notificationHelper")
 const { sendMail } = require("../utils/mail")
+const { logAudit } = require("../utils/auditLogger")
+
 
 /* POST user registering. */
 router.post("/register", async function (req, res, next) {
@@ -40,6 +42,15 @@ router.post("/register", async function (req, res, next) {
       password: hashedPassword,
     })
     console.log("User registered:", userResp.toJSON())
+
+    await logAudit(req, {
+      action: "USER_REGISTER",
+      entityType: "User",
+      entityId: userResp.id,
+      description: `User registered: ${userResp.firstName} ${userResp.lastName} (${userResp.email})`,
+      status: "success",
+      actorOverride: { userId: userResp.id, email: userResp.email, role: userResp.userType }
+    })
 
     return sendResponse(res, {
       message: "User registered successfully.",
@@ -97,6 +108,15 @@ router.post("/register-seller", async function (req, res, next) {
       `A new seller (${firstName} ${lastName} - ${email}) has registered and is pending approval.`
     ).catch(err => console.error("Notification trigger failed:", err))
 
+    await logAudit(req, {
+      action: "SELLER_REGISTER",
+      entityType: "User",
+      entityId: userResp.id,
+      description: `Seller registered: ${userResp.firstName} ${userResp.lastName} (${userResp.email})`,
+      status: "success",
+      actorOverride: { userId: userResp.id, email: userResp.email, role: userResp.userType }
+    })
+
     return sendResponse(res, {
       success: true,
       message: "Seller registration submitted successfully. Your account is pending admin approval.",
@@ -127,6 +147,12 @@ router.post("/login", async function (req, res, next) {
     if (!userResp) {
       const logger = require("../utils/logger")
       logger.warn(`Failed login attempt: email not found ${email}`, "AUTH_LOGIN")
+      await logAudit(req, {
+        action: "USER_LOGIN",
+        description: `Failed login attempt: email not found ${email}`,
+        status: "failure",
+        actorOverride: { email }
+      })
       return sendResponse(
         res,
         {
@@ -142,6 +168,12 @@ router.post("/login", async function (req, res, next) {
     if (!isMatch) {
       const logger = require("../utils/logger")
       logger.warn(`Failed login attempt: incorrect password for ${email}`, "AUTH_LOGIN")
+      await logAudit(req, {
+        action: "USER_LOGIN",
+        description: `Failed login attempt: incorrect password for ${email}`,
+        status: "failure",
+        actorOverride: { email, userId: userResp.id, role: userResp.userType }
+      })
       return sendResponse(
         res,
         {
@@ -156,6 +188,12 @@ router.post("/login", async function (req, res, next) {
     if (!userResp.isActive) {
       const logger = require("../utils/logger")
       logger.warn(`Failed login attempt: account inactive/pending approval for ${email}`, "AUTH_LOGIN")
+      await logAudit(req, {
+        action: "USER_LOGIN",
+        description: `Failed login attempt: account inactive/pending approval for ${email}`,
+        status: "failure",
+        actorOverride: { email, userId: userResp.id, role: userResp.userType }
+      })
       return sendResponse(
         res,
         {
@@ -186,6 +224,13 @@ router.post("/login", async function (req, res, next) {
       userId: userResp.id,
       email: userResp.email,
       userType: userResp.userType,
+    })
+
+    await logAudit(req, {
+      action: "USER_LOGIN",
+      description: `User ${userResp.email} (${userResp.userType}) logged in successfully.`,
+      status: "success",
+      actorOverride: { userId: userResp.id, email: userResp.email, role: userResp.userType }
     })
 
     return sendResponse(res, {
@@ -251,6 +296,15 @@ router.post("/forgot-password", async function (req, res, next) {
       }
     })
 
+    await logAudit(req, {
+      action: "FORGOT_PASSWORD",
+      entityType: "User",
+      entityId: user.id,
+      description: `Password reset link requested for ${email}`,
+      status: "success",
+      actorOverride: { userId: user.id, email: user.email, role: user.userType }
+    })
+
     return sendResponse(res, {
       success: true,
       message: "Password reset link sent to your email."
@@ -290,6 +344,15 @@ router.post("/reset-password", async function (req, res, next) {
     user.resetPasswordToken = null
     user.resetPasswordExpires = null
     await user.save()
+
+    await logAudit(req, {
+      action: "RESET_PASSWORD",
+      entityType: "User",
+      entityId: user.id,
+      description: `Password reset successfully for ${email}`,
+      status: "success",
+      actorOverride: { userId: user.id, email: user.email, role: user.userType }
+    })
 
     return sendResponse(res, {
       success: true,
@@ -630,6 +693,18 @@ router.post("/update/:id", async function (req, res, next) {
           }
         }).catch(err => console.error("Failed to send seller approved email:", err))
       }
+
+      await logAudit(req, {
+        action: wasApproved ? "APPROVE_SELLER" : "UPDATE_USER",
+        entityType: "User",
+        entityId: id,
+        description: wasApproved ? `Seller approved: ${exists.firstName} ${exists.lastName} (${exists.email})` : `User ${exists.email} updated by ${requestingUser.email}`,
+        changes: {
+          before: { isActive: exists.isActive, firstName: exists.firstName, lastName: exists.lastName, mobileNumber: exists.mobileNumber, userType: exists.userType },
+          after: updateData
+        },
+        status: "success"
+      })
 
       return sendResponse(
         res,

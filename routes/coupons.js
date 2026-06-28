@@ -6,6 +6,8 @@ const { Coupons, Users } = require("../models/index")
 const sendResponse = require("../utils/response")
 const { Op } = require("sequelize")
 const { CURRENCY_SYMBOL } = require("../utils/currency")
+const { logAudit } = require("../utils/auditLogger")
+
 
 // GET / - List all coupons (Admin/Seller only)
 router.get("/", async function (req, res, next) {
@@ -177,6 +179,16 @@ router.post("/", async function (req, res, next) {
       createdById: userId,
     })
 
+    const callingUser = await Users.findByPk(userId)
+    await logAudit(req, {
+      action: "CREATE_COUPON",
+      entityType: "Coupon",
+      entityId: coupon.id,
+      description: `Coupon "${coupon.code}" created by ${callingUser?.email || 'Unknown'}`,
+      changes: coupon.toJSON(),
+      status: "success"
+    })
+
     return sendResponse(
       res,
       {
@@ -278,7 +290,21 @@ router.put("/:id", async function (req, res, next) {
     if (expiryDate !== undefined) coupon.expiryDate = expiryDate || null
     if (isActive !== undefined) coupon.isActive = isActive
 
+    const beforeUpdate = coupon.previous() || {}
     await coupon.save()
+
+    const callingUser = await Users.findByPk(userId)
+    await logAudit(req, {
+      action: "UPDATE_COUPON",
+      entityType: "Coupon",
+      entityId: coupon.id,
+      description: `Coupon "${coupon.code}" updated by ${callingUser?.email || 'Unknown'}`,
+      changes: {
+        before: beforeUpdate,
+        after: coupon.toJSON()
+      },
+      status: "success"
+    })
 
     return sendResponse(res, {
       success: true,
@@ -339,6 +365,16 @@ router.delete("/:id", async function (req, res, next) {
 
     // We can either delete it or set isActive to false. Let's physically delete it.
     await coupon.destroy()
+
+    const callingUser = await Users.findByPk(userId)
+    await logAudit(req, {
+      action: "DELETE_COUPON",
+      entityType: "Coupon",
+      entityId: coupon.id,
+      description: `Coupon "${coupon.code}" deleted by ${callingUser?.email || 'Unknown'}`,
+      changes: coupon.toJSON(),
+      status: "success"
+    })
 
     return sendResponse(res, {
       success: true,

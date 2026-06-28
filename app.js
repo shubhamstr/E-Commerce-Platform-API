@@ -25,6 +25,8 @@ var notificationsRouter = require("./routes/notifications")
 var emailLogsRouter = require("./routes/emailLogs")
 var couponsRouter = require("./routes/coupons")
 var systemRouter = require("./routes/system")
+var auditLogsRouter = require("./routes/auditLogs")
+
 
 var app = express()
 
@@ -77,6 +79,8 @@ app.use("/api/notification", notificationsRouter)
 app.use("/api/email-log", emailLogsRouter)
 app.use("/api/coupon", couponsRouter)
 app.use("/api/system", systemRouter)
+app.use("/api/audit-log", auditLogsRouter)
+
 
 // Global Error Handler
 app.use((err, req, res, next) => {

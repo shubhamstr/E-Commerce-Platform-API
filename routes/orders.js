@@ -8,6 +8,8 @@ const sequelize = require("../utils/db")
 const { triggerNotification } = require("../utils/notificationHelper")
 const { sendMail } = require("../utils/mail")
 const { CURRENCY_SYMBOL } = require("../utils/currency")
+const { logAudit } = require("../utils/auditLogger")
+
 
 // POST checkout - place an order from the user's cart
 router.post("/checkout", async function (req, res, next) {
@@ -247,6 +249,15 @@ router.post("/checkout", async function (req, res, next) {
       "New Order Placed",
       `Order #${order.id} has been placed. Total amount: $${order.totalAmount}`
     ).catch(err => console.error("Notification trigger failed:", err))
+
+    await logAudit(req, {
+      action: "PLACE_ORDER",
+      entityType: "Order",
+      entityId: order.id,
+      description: `Order #${order.id} placed. Total: ${CURRENCY_SYMBOL}${order.totalAmount}`,
+      changes: order.toJSON(),
+      status: "success"
+    })
 
     return sendResponse(
       res,
@@ -496,6 +507,19 @@ router.put("/:id/status", async function (req, res, next) {
       ).catch(err => console.error("Notification trigger failed:", err))
     }
 
+    const beforeStatus = order.previous() ? { status: order.previous().status } : {}
+    await logAudit(req, {
+      action: "UPDATE_ORDER_STATUS",
+      entityType: "Order",
+      entityId: order.id,
+      description: `Order #${order.id} status updated to "${finalStatus}"`,
+      changes: {
+        before: beforeStatus,
+        after: { status: finalStatus }
+      },
+      status: "success"
+    })
+
     return sendResponse(res, {
       success: true,
       message: "Order status updated successfully.",
@@ -571,6 +595,18 @@ router.put("/:id/cancel", async function (req, res, next) {
       "Order Cancelled",
       `Order #${order.id} has been cancelled by customer.`
     ).catch(err => console.error("Notification trigger failed:", err))
+
+    await logAudit(req, {
+      action: "CANCEL_ORDER",
+      entityType: "Order",
+      entityId: order.id,
+      description: `Order #${order.id} cancelled by customer`,
+      changes: {
+        before: { status: "pending/processing" },
+        after: { status: "cancelled by customer" }
+      },
+      status: "success"
+    })
 
     return sendResponse(res, {
       success: true,
