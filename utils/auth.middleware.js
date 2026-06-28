@@ -7,16 +7,13 @@ const SECRET = process.env.JWT_SECRET
 
 const authenticateToken = (req, res, next) => {
   try {
-    // console.log(req.path)
-    if (excludedPaths.includes(req.path)) {
-      return next() // Skip auth for these routes
-    }
     const authHeader = req.headers["authorization"]
-    // console.log(authHeader)
-    const token = authHeader?.split(" ")[1] // optional chaining for safety
-    // console.log(token)
+    const token = authHeader?.split(" ")[1]
 
     if (!token) {
+      if (excludedPaths.includes(req.path)) {
+        return next()
+      }
       return sendResponse(
         res,
         {
@@ -29,6 +26,9 @@ const authenticateToken = (req, res, next) => {
 
     jwt.verify(token, SECRET, (err, user) => {
       if (err) {
+        if (excludedPaths.includes(req.path)) {
+          return next()
+        }
         return sendResponse(
           res,
           {

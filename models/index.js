@@ -30,6 +30,16 @@ Products.belongsTo(Categories, {
   as: "category",
 })
 
+// Users <-> Products
+Users.hasMany(Products, {
+  foreignKey: "createdById",
+  as: "createdProducts",
+})
+Products.belongsTo(Users, {
+  foreignKey: "createdById",
+  as: "creator",
+})
+
 // Users <-> Wishlists
 Users.hasMany(Wishlists, {
   foreignKey: "userId",

@@ -100,6 +100,9 @@ router.get("/get", async function (req, res, next) {
     const offset = (page - 1) * limit
 
     let where = {}
+    if (req.user && req.user.userType === "seller") {
+      where.createdById = req.user.userId
+    }
     if (filters) {
       const parsed = JSON.parse(filters)
       for (const field in parsed) {
@@ -216,8 +219,12 @@ router.get("/get", async function (req, res, next) {
 router.get("/get/:id", async function (req, res, next) {
   try {
     const { id } = req.params
+    let where = { id }
+    if (req.user && req.user.userType === "seller") {
+      where.createdById = req.user.userId
+    }
     const product = await Products.findOne({
-      where: { id },
+      where,
       include: [
         {
           model: Categories,
@@ -329,6 +336,7 @@ router.post("/add", async function (req, res, next) {
       categoryId: categoryId || null,
       sizes: sizes || null,
       colors: colors || null,
+      createdById: req.user.userId,
     })
 
     return sendResponse(
@@ -380,6 +388,17 @@ router.post("/update/:id", async function (req, res, next) {
           message: "Product not found.",
         },
         404
+      )
+    }
+
+    if (user.userType === "seller" && product.createdById !== user.id) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized, permission denied.",
+        },
+        403
       )
     }
 
@@ -506,6 +525,17 @@ router.delete("/delete/:id", async function (req, res, next) {
       )
     }
 
+    if (user.userType === "seller" && product.createdById !== user.id) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized, permission denied.",
+        },
+        403
+      )
+    }
+
     await Products.destroy({ where: { id } })
 
     // Delete associated image file if it exists locally
@@ -563,6 +593,17 @@ router.post("/delete/:id", async function (req, res, next) {
           message: "Product not found.",
         },
         404
+      )
+    }
+
+    if (user.userType === "seller" && product.createdById !== user.id) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Unauthorized, permission denied.",
+        },
+        403
       )
     }
 

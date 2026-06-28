@@ -12,6 +12,14 @@ const Products = sequelize.define("products", {
       key: "id",
     },
   },
+  createdById: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: "users",
+      key: "id",
+    },
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: false,
