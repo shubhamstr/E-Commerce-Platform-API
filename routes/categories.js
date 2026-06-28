@@ -248,12 +248,12 @@ router.post("/add", async function (req, res, next) {
 
     if (isFeatured === true || isFeatured === 'true') {
       const featuredCount = await Categories.count({ where: { isFeatured: true } })
-      if (featuredCount >= 2) {
+      if (featuredCount >= 4) {
         return sendResponse(
           res,
           {
             success: false,
-            message: "Cannot feature more than 2 categories.",
+            message: "Cannot feature more than 4 categories.",
           },
           200
         )
@@ -343,12 +343,12 @@ router.post("/update/:id", async function (req, res, next) {
           id: { [Op.ne]: id }
         }
       })
-      if (featuredCount >= 2) {
+      if (featuredCount >= 4) {
         return sendResponse(
           res,
           {
             success: false,
-            message: "Cannot feature more than 2 categories.",
+            message: "Cannot feature more than 4 categories.",
           },
           200
         )
