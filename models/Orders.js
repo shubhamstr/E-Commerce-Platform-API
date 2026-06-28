@@ -29,6 +29,19 @@ const Orders = sequelize.define("orders", {
     allowNull: false,
     defaultValue: "pending",
   },
+  couponCode: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  discountAmount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0.00,
+  },
+  subTotal: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+  },
 })
 
 module.exports = Orders

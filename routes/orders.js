@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const express = require("express")
 const router = express.Router()
-const { Carts, Products, Orders, OrderItems, Addresses, Users, Reviews } = require("../models/index")
+const { Carts, Products, Orders, OrderItems, Addresses, Users, Reviews, Coupons } = require("../models/index")
 const sendResponse = require("../utils/response")
 const sequelize = require("../utils/db")
 const { triggerNotification } = require("../utils/notificationHelper")
@@ -13,7 +13,7 @@ router.post("/checkout", async function (req, res, next) {
   const transaction = await sequelize.transaction()
   try {
     const userId = req.user.userId
-    const { addressId } = req.body
+    const { addressId, couponCode } = req.body
 
     if (!addressId) {
       return sendResponse(
@@ -63,8 +63,8 @@ router.post("/checkout", async function (req, res, next) {
       )
     }
 
-    // 3. Calculate total amount
-    let totalAmount = 0
+    // 3. Calculate subTotal
+    let subTotal = 0
     for (const item of cartItems) {
       if (!item.product) {
         return sendResponse(
@@ -76,8 +76,99 @@ router.post("/checkout", async function (req, res, next) {
           400
         )
       }
-      totalAmount += (item.product.price || 0) * item.quantity
+      subTotal += (item.product.price || 0) * item.quantity
     }
+
+    // Coupon logic validation
+    let discountAmount = 0
+    let appliedCouponCode = null
+    let couponRecord = null
+
+    if (couponCode) {
+      const codeUpper = couponCode.trim().toUpperCase()
+      couponRecord = await Coupons.findOne({ where: { code: codeUpper } })
+      if (!couponRecord) {
+        await transaction.rollback()
+        return sendResponse(
+          res,
+          {
+            success: false,
+            message: "Invalid coupon code.",
+          },
+          400
+        )
+      }
+
+      if (!couponRecord.isActive) {
+        await transaction.rollback()
+        return sendResponse(
+          res,
+          {
+            success: false,
+            message: "This coupon is inactive.",
+          },
+          400
+        )
+      }
+
+      if (couponRecord.expiryDate && new Date(couponRecord.expiryDate) < new Date()) {
+        await transaction.rollback()
+        return sendResponse(
+          res,
+          {
+            success: false,
+            message: "This coupon has expired.",
+          },
+          400
+        )
+      }
+
+      if (couponRecord.usageLimit !== null && couponRecord.usedCount >= couponRecord.usageLimit) {
+        await transaction.rollback()
+        return sendResponse(
+          res,
+          {
+            success: false,
+            message: "This coupon has reached its usage limit.",
+          },
+          400
+        )
+      }
+
+      if (couponRecord.minOrderAmount !== null && subTotal < parseFloat(couponRecord.minOrderAmount)) {
+        await transaction.rollback()
+        return sendResponse(
+          res,
+          {
+            success: false,
+            message: `Minimum order amount of ₹${couponRecord.minOrderAmount} is required.`,
+          },
+          400
+        )
+      }
+
+      // Calculate discount
+      const val = parseFloat(couponRecord.discountValue)
+      if (couponRecord.discountType === "percentage") {
+        discountAmount = (subTotal * val) / 100
+        if (couponRecord.maxDiscountAmount !== null) {
+          const maxDisc = parseFloat(couponRecord.maxDiscountAmount)
+          if (discountAmount > maxDisc) {
+            discountAmount = maxDisc
+          }
+        }
+      } else {
+        discountAmount = val
+      }
+
+      if (discountAmount > subTotal) {
+        discountAmount = subTotal
+      }
+
+      appliedCouponCode = couponRecord.code
+    }
+
+    const totalAmount = subTotal - discountAmount
 
     // 4. Create Order
     const order = await Orders.create(
@@ -85,10 +176,21 @@ router.post("/checkout", async function (req, res, next) {
         userId,
         addressId,
         totalAmount,
+        subTotal,
+        discountAmount,
+        couponCode: appliedCouponCode,
         status: "pending",
       },
       { transaction }
     )
+
+    // Increment usage
+    if (couponRecord) {
+      await couponRecord.update(
+        { usedCount: couponRecord.usedCount + 1 },
+        { transaction }
+      )
+    }
 
     // 5. Create OrderItems
     for (const item of cartItems) {
