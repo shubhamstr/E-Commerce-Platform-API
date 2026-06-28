@@ -379,4 +379,70 @@ router.put("/:id/cancel", async function (req, res, next) {
   }
 })
 
+// GET /track - track order details by orderId without authentication
+router.get("/track", async function (req, res, next) {
+  try {
+    const { orderId } = req.query
+    if (!orderId) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Order ID is required.",
+        },
+        400
+      )
+    }
+
+    const order = await Orders.findOne({
+      where: { id: orderId },
+      include: [
+        {
+          model: Addresses,
+          as: "address",
+          // Mask sensitive details
+          attributes: ["city", "state", "postalCode", "country"],
+        },
+        {
+          model: OrderItems,
+          as: "items",
+          include: [
+            {
+              model: Products,
+              as: "product",
+            },
+          ],
+        },
+      ],
+    })
+
+    if (!order) {
+      return sendResponse(
+        res,
+        {
+          success: false,
+          message: "Order not found.",
+        },
+        404
+      )
+    }
+
+    return sendResponse(res, {
+      success: true,
+      data: order,
+    })
+  } catch (error) {
+    console.error("Track order error:", error)
+    return sendResponse(
+      res,
+      {
+        success: false,
+        message: "Internal Server Error",
+        error: error.message,
+      },
+      500
+    )
+  }
+})
+
 module.exports = router
