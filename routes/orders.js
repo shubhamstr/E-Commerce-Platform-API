@@ -401,7 +401,7 @@ router.get("/track", async function (req, res, next) {
           model: Addresses,
           as: "address",
           // Mask sensitive details
-          attributes: ["city", "state", "postalCode", "country"],
+          attributes: ["city", "state", "pinCode"],
         },
         {
           model: OrderItems,
