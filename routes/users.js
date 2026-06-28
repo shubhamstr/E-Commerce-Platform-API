@@ -125,6 +125,8 @@ router.post("/login", async function (req, res, next) {
     // find user
     const userResp = await Users.findOne({ where: { email: email } })
     if (!userResp) {
+      const logger = require("../utils/logger")
+      logger.warn(`Failed login attempt: email not found ${email}`, "AUTH_LOGIN")
       return sendResponse(
         res,
         {
@@ -138,6 +140,8 @@ router.post("/login", async function (req, res, next) {
     // Compare password
     const isMatch = await bcrypt.compare(password, userResp.password)
     if (!isMatch) {
+      const logger = require("../utils/logger")
+      logger.warn(`Failed login attempt: incorrect password for ${email}`, "AUTH_LOGIN")
       return sendResponse(
         res,
         {
@@ -150,6 +154,8 @@ router.post("/login", async function (req, res, next) {
 
     // Check if user is active (sellers must be approved by admin)
     if (!userResp.isActive) {
+      const logger = require("../utils/logger")
+      logger.warn(`Failed login attempt: account inactive/pending approval for ${email}`, "AUTH_LOGIN")
       return sendResponse(
         res,
         {
@@ -175,6 +181,13 @@ router.post("/login", async function (req, res, next) {
       }
     )
 
+    const logger = require("../utils/logger")
+    logger.info(`User ${userResp.email} (${userResp.userType}) logged in successfully.`, "AUTH_LOGIN", {
+      userId: userResp.id,
+      email: userResp.email,
+      userType: userResp.userType,
+    })
+
     return sendResponse(res, {
       success: true,
       message: `Welcome ${userResp.firstName}!`,
@@ -185,6 +198,8 @@ router.post("/login", async function (req, res, next) {
     })
   } catch (error) {
     console.error(error)
+    const logger = require("../utils/logger")
+    logger.error(`Error during user login: ${error.message}`, "AUTH_LOGIN", { stack: error.stack })
     return sendResponse(
       res,
       {

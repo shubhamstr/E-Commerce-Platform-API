@@ -11,6 +11,7 @@ const Reviews = require("./Reviews")
 const Notifications = require("./Notifications")
 const EmailLogs = require("./EmailLogs")
 const Coupons = require("./Coupons")
+const SystemLogs = require("./SystemLogs")
 
 // Users <-> Addresses
 Users.hasMany(Addresses, {
@@ -186,6 +187,7 @@ module.exports = {
   Notifications,
   EmailLogs,
   Coupons,
+  SystemLogs,
 }
 
 

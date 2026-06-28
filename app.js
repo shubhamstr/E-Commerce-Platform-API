@@ -24,6 +24,7 @@ var reviewsRouter = require("./routes/reviews")
 var notificationsRouter = require("./routes/notifications")
 var emailLogsRouter = require("./routes/emailLogs")
 var couponsRouter = require("./routes/coupons")
+var systemRouter = require("./routes/system")
 
 var app = express()
 
@@ -52,8 +53,14 @@ sequelize.authenticate()
   .then(() => {
     return createDefaultAdmin()
   })
+  .then(() => {
+    const logger = require("./utils/logger")
+    logger.info("API Server started successfully and database is synchronized.", "SERVER_STARTUP")
+  })
   .catch(err => {
     console.error("Database initialization failed:", err)
+    const logger = require("./utils/logger")
+    logger.error("Database initialization failed: " + err.message, "SERVER_STARTUP", { stack: err.stack })
   })
 
 app.use("/api/", indexRouter)
@@ -69,5 +76,30 @@ app.use("/api/review", reviewsRouter)
 app.use("/api/notification", notificationsRouter)
 app.use("/api/email-log", emailLogsRouter)
 app.use("/api/coupon", couponsRouter)
+app.use("/api/system", systemRouter)
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error("Global error handler captured error:", err)
+  try {
+    const logger = require("./utils/logger")
+    logger.error(err.message || "Unhandled error", "API_GLOBAL_ERROR", {
+      stack: err.stack,
+      path: req.path,
+      method: req.method,
+    })
+  } catch (logErr) {
+    console.error("Error logging failed:", logErr)
+  }
+
+  if (res.headersSent) {
+    return next(err)
+  }
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  })
+})
 
 module.exports = app
