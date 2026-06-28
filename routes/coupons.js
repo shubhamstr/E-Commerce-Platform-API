@@ -5,6 +5,7 @@ const router = express.Router()
 const { Coupons, Users } = require("../models/index")
 const sendResponse = require("../utils/response")
 const { Op } = require("sequelize")
+const { CURRENCY_SYMBOL } = require("../utils/currency")
 
 // GET / - List all coupons (Admin/Seller only)
 router.get("/", async function (req, res, next) {
@@ -440,7 +441,7 @@ router.post("/validate", async function (req, res, next) {
         res,
         {
           success: false,
-          message: `Minimum order amount of ₹${coupon.minOrderAmount} is required to use this coupon.`,
+          message: `Minimum order amount of ${CURRENCY_SYMBOL}${coupon.minOrderAmount} is required to use this coupon.`,
         },
         400
       )

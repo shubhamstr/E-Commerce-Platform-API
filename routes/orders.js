@@ -7,6 +7,7 @@ const sendResponse = require("../utils/response")
 const sequelize = require("../utils/db")
 const { triggerNotification } = require("../utils/notificationHelper")
 const { sendMail } = require("../utils/mail")
+const { CURRENCY_SYMBOL } = require("../utils/currency")
 
 // POST checkout - place an order from the user's cart
 router.post("/checkout", async function (req, res, next) {
@@ -141,7 +142,7 @@ router.post("/checkout", async function (req, res, next) {
           res,
           {
             success: false,
-            message: `Minimum order amount of ₹${couponRecord.minOrderAmount} is required.`,
+            message: `Minimum order amount of ${CURRENCY_SYMBOL}${couponRecord.minOrderAmount} is required.`,
           },
           400
         )

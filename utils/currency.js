@@ -1,17 +1,20 @@
-const CONVERSION_RATE = 80;
+const CONVERSION_RATE = 1;
+const CURRENCY_SYMBOL = '$';
 
 const convertUsdToInr = (usdAmount) => {
   const amount = parseFloat(usdAmount) || 0;
-  return amount * CONVERSION_RATE;
+  return amount;
 };
 
 const formatPrice = (usdAmount) => {
-  const inrAmount = convertUsdToInr(usdAmount);
-  return `₹${inrAmount.toFixed(2)}`;
+  const amount = parseFloat(usdAmount) || 0;
+  return `${CURRENCY_SYMBOL}${amount.toFixed(2)}`;
 };
 
 module.exports = {
   CONVERSION_RATE,
+  CURRENCY_SYMBOL,
   convertUsdToInr,
   formatPrice,
 };
+
