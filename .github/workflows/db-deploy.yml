@@ -1,0 +1,77 @@
+name: MySQL DB – One-Time Setup (Run + Migrate)
+
+# Trigger: manual only. Run ONCE to provision MySQL on EC2.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'yes' to confirm DB setup"
+        required: true
+        default: "no"
+
+jobs:
+  db-setup:
+    name: Run MySQL Container & Migrate
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirm == 'yes' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Start MySQL Container on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:            ${{ secrets.EC2_HOST }}
+          username:        ${{ secrets.EC2_USER }}
+          key:             ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set -e
+
+            # Stop & remove existing MySQL container if any (idempotent)
+            docker stop ecom-mysql 2>/dev/null || true
+            docker rm   ecom-mysql 2>/dev/null || true
+
+            # Pull official MySQL 8 image and run it
+            docker run -d \
+              --name ecom-mysql \
+              --restart unless-stopped \
+              -e MYSQL_ROOT_PASSWORD=${{ secrets.DB_PASSWORD }} \
+              -e MYSQL_DATABASE=${{ secrets.DB_NAME }} \
+              -e MYSQL_ROOT_HOST='%' \
+              -p 3306:3306 \
+              mysql:8 \
+              --bind-address=0.0.0.0
+
+            # Wait until MySQL is ready to accept connections
+            echo ">>> Waiting for MySQL to be ready..."
+            for i in $(seq 1 30); do
+              docker exec ecom-mysql mysqladmin ping -uroot -p${{ secrets.DB_PASSWORD }} --silent 2>/dev/null && break
+              echo "  attempt $i/30 – not ready yet, retrying in 3s..."
+              sleep 3
+            done
+
+            echo "✅ MySQL container is up on port 3306."
+
+      - name: Run Sequelize Migrations
+        env:
+          NODE_ENV:    production
+          DB_HOST:     ${{ secrets.EC2_HOST }}
+          DB_PORT:     3306
+          DB_NAME:     ${{ secrets.DB_NAME }}
+          DB_USER:     root
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_DIALECT:  mysql
+        run: |
+          npx sequelize-cli db:migrate --env production
+          echo "✅ Migrations complete."
+
