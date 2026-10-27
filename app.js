@@ -42,6 +42,8 @@ app.use(express.static(path.join(__dirname, "public")))
 const swagger = require("./utils/swagger")
 app.use("/api-docs", swagger.serve, swagger.setup)
 
+app.use("/api/", indexRouter)
+
 app.use(authenticateToken)
 
 // Database connection, synchronization and seeders
@@ -65,7 +67,6 @@ sequelize.authenticate()
     logger.error("Database initialization failed: " + err.message, "SERVER_STARTUP", { stack: err.stack })
   })
 
-app.use("/api/", indexRouter)
 app.use("/api/user", usersRouter)
 app.use("/api/address", addressesRouter)
 app.use("/api/category", categoriesRouter)
