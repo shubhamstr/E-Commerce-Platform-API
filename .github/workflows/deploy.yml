@@ -73,20 +73,26 @@ jobs:
             set -e
             FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
 
-            # 1. Create .env at runtime on EC2
-            if [ -n "$ENV_B64" ]; then
-              echo "$ENV_B64" | base64 -d > .env
-              chmod 600 .env
+            # 1. Write .env only on first deploy — never overwrite on redeployment.
+            #    To update env vars: SSH into EC2, edit ~/.ecom.env, then run:
+            #    docker restart ecommerce-api
+            if [ ! -f ~/.ecom.env ]; then
+              echo "[deploy] ~/.ecom.env not found — seeding from GitHub Secret..."
+              echo "$ENV_B64" | base64 -d > ~/.ecom.env
+              chmod 600 ~/.ecom.env
+              echo "[deploy] ~/.ecom.env created."
+            else
+              echo "[deploy] ~/.ecom.env already exists — skipping overwrite."
             fi
 
             # 2. Ensure persistent uploads directory exists on EC2 host
             mkdir -p ~/uploads
 
-            # 3. Login to ECR and pull image
+            # 3. Login to ECR and pull latest image
             echo "$ECR_PASSWORD" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
             docker pull "$FULL_IMAGE"
 
-            # 4. Stop old container and run new image on port 5010 with uploads volume
+            # 4. Stop old container and run new image
             docker stop ecommerce-api 2>/dev/null || true
             docker rm ecommerce-api 2>/dev/null || true
 
@@ -94,7 +100,7 @@ jobs:
               --name ecommerce-api \
               --restart unless-stopped \
               -p 5010:5010 \
-              --env-file .env \
+              --env-file ~/.ecom.env \
               -v ~/uploads:/app/public/uploads \
               "$FULL_IMAGE"
 
