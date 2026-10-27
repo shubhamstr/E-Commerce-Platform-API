@@ -1,4 +1,4 @@
-name: MySQL DB – One-Time Setup (Run + Migrate)
+name: MySQL DB – One-Time Setup
 
 # Trigger: manual only. Run ONCE to provision MySQL on EC2.
 on:
@@ -11,7 +11,7 @@ on:
 
 jobs:
   db-setup:
-    name: Run MySQL Container & Migrate
+    name: Run MySQL Container
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.confirm == 'yes' }}
 
@@ -50,4 +50,3 @@ jobs:
             done
 
             echo "✅ MySQL container is up on port 3306."
-
