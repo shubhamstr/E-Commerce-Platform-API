@@ -1,0 +1,102 @@
+name: Deploy to EC2 (AWS ECR)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        run: |
+          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" .
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Prepare Runtime Secrets
+        id: prep
+        run: |
+          ECR_PASS=$(aws ecr get-login-password --region ${{ secrets.AWS_REGION }})
+          echo "::add-mask::$ECR_PASS"
+          echo "ecr_password=$ECR_PASS" >> "$GITHUB_OUTPUT"
+
+          ENV_B64=$(printf '%s' "${{ secrets.ENV_FILE }}" | base64 -w 0)
+          echo "::add-mask::$ENV_B64"
+          echo "env_b64=$ENV_B64" >> "$GITHUB_OUTPUT"
+
+      - name: Run Container on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          ECR_PASSWORD: ${{ steps.prep.outputs.ecr_password }}
+          ENV_B64: ${{ steps.prep.outputs.env_b64 }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: ECR_REGISTRY,ECR_REPOSITORY,ECR_PASSWORD,ENV_B64
+          script: |
+            set -e
+            FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+
+            # 1. Create .env at runtime on EC2
+            if [ -n "$ENV_B64" ]; then
+              echo "$ENV_B64" | base64 -d > .env
+              chmod 600 .env
+            fi
+
+            # 2. Ensure persistent uploads directory exists on EC2 host
+            mkdir -p ~/uploads
+
+            # 3. Login to ECR and pull image
+            echo "$ECR_PASSWORD" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+            docker pull "$FULL_IMAGE"
+
+            # 4. Stop old container and run new image on port 5010 with uploads volume
+            docker stop ecommerce-api 2>/dev/null || true
+            docker rm ecommerce-api 2>/dev/null || true
+
+            docker run -d \
+              --name ecommerce-api \
+              --restart unless-stopped \
+              -p 5010:5010 \
+              --env-file .env \
+              -v ~/uploads:/app/public/uploads \
+              "$FULL_IMAGE"
+
+            # 5. Clean dangling images
+            docker image prune -f
