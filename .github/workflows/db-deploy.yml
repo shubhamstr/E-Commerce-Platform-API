@@ -16,23 +16,12 @@ jobs:
     if: ${{ github.event.inputs.confirm == 'yes' }}
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Dependencies
-        run: npm ci
-
       - name: Start MySQL Container on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host:            ${{ secrets.EC2_HOST }}
-          username:        ${{ secrets.EC2_USER }}
-          key:             ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           command_timeout: 5m
           script: |
             set -e
@@ -61,17 +50,4 @@ jobs:
             done
 
             echo "✅ MySQL container is up on port 3306."
-
-      - name: Run Sequelize Migrations
-        env:
-          NODE_ENV:    production
-          DB_HOST:     ${{ secrets.EC2_HOST }}
-          DB_PORT:     3306
-          DB_NAME:     ${{ secrets.DB_NAME }}
-          DB_USER:     root
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_DIALECT:  mysql
-        run: |
-          npx sequelize-cli db:migrate --env production
-          echo "✅ Migrations complete."
 
