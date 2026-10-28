@@ -279,10 +279,10 @@ router.post("/forgot-password", async function (req, res, next) {
 
     let resetLink = ""
     if (user.userType === "admin" || user.userType === "seller") {
-      const adminUrl = process.env.ADMIN_URL || "http://localhost:4010"
+      const adminUrl = process.env.ADMIN_URL || "http://localhost:4002"
       resetLink = `${adminUrl}/ecom/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
     } else {
-      const websiteUrl = process.env.WEBSITE_URL || "http://localhost:4005"
+      const websiteUrl = process.env.WEBSITE_URL || "http://localhost:4001"
       resetLink = `${websiteUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
     }
 

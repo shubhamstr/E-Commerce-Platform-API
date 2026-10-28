@@ -99,7 +99,7 @@ jobs:
             docker run -d \
               --name ecommerce-api \
               --restart unless-stopped \
-              -p 5010:5010 \
+              -p 4005:4005 \
               --env-file ~/.ecom.env \
               -v ~/uploads:/app/public/uploads \
               "$FULL_IMAGE"
