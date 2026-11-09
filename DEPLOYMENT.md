@@ -87,7 +87,8 @@ To deploy or redeploy phpMyAdmin on EC2:
    - Connect to EC2 via SSH using your GitHub Secrets (`EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`).
    - Create or join a shared Docker bridge network (`ecom-network`) connecting `ecom-mysql` and phpMyAdmin seamlessly.
    - Run the official `phpmyadmin:5.2.2` container exposed on **port 4006** (`-p 4006:80`).
-   - Configure credentials (`PMA_USER=root`, `PMA_PASSWORD=${{ secrets.DB_PASSWORD }}`) with support for arbitrary server logins (`PMA_ARBITRARY=1`) and large file uploads (`UPLOAD_LIMIT=300M`).
+   - Uses secure **cookie authentication** (no credentials are baked in or passed via environment), requiring users to enter their MySQL username and password to log in.
+   - Configures large file uploads (`UPLOAD_LIMIT=300M`) for importing database dumps.
 4. Access phpMyAdmin in your browser at:
    ```
    http://<EC2_HOST>:4006
