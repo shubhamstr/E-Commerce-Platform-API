@@ -9,7 +9,7 @@
     "db:migrate": "sequelize db:migrate",
     "db:migrate:undo": "sequelize db:migrate:undo",
     "pma:build": "docker build -f Dockerfile.phpmyadmin -t ecom-phpmyadmin .",
-    "pma:run": "docker run -d --rm --name ecom-phpmyadmin -p 4007:80 ecom-phpmyadmin",
+    "pma:run": "docker run -d --rm --name ecom-phpmyadmin -p 4006:80 ecom-phpmyadmin",
     "pma:stop": "docker stop ecom-phpmyadmin",
     "pma": "npm run pma:build && npm run pma:run"
   },

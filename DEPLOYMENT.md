@@ -54,7 +54,8 @@ sudo usermod -aG docker $USER
 newgrp docker
 
 # In AWS EC2 Security Group:
-# Open Inbound Port 4005 (Custom TCP, 0.0.0.0/0)
+# Open Inbound Port 4005 (Custom TCP, 0.0.0.0/0) - API
+# Open Inbound Port 4006 (Custom TCP, 0.0.0.0/0) - phpMyAdmin
 # Open Inbound Port 22 (SSH)
 ```
 
@@ -73,3 +74,21 @@ On push to `main`:
      ```bash
      docker run -d --name ecommerce-api --restart unless-stopped -p 4005:4005 --env-file .env -v ~/uploads:/app/public/uploads <ECR_IMAGE>
      ```
+
+---
+
+## 4. phpMyAdmin Deployment (Port 4006)
+
+To deploy or redeploy phpMyAdmin on EC2:
+
+1. In GitHub, go to **Actions** > **phpMyAdmin – Deploy on Port 4006**.
+2. Click **Run workflow** (default port is `4006`).
+3. The pipeline will:
+   - Connect to EC2 via SSH using your GitHub Secrets (`EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`).
+   - Create or join a shared Docker bridge network (`ecom-network`) connecting `ecom-mysql` and phpMyAdmin seamlessly.
+   - Run the official `phpmyadmin:5.2.2` container exposed on **port 4006** (`-p 4006:80`).
+   - Configure credentials (`PMA_USER=root`, `PMA_PASSWORD=${{ secrets.DB_PASSWORD }}`) with support for arbitrary server logins (`PMA_ARBITRARY=1`) and large file uploads (`UPLOAD_LIMIT=300M`).
+4. Access phpMyAdmin in your browser at:
+   ```
+   http://<EC2_HOST>:4006
+   ```
